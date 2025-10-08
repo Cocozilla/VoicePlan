@@ -4,8 +4,7 @@
 import { Mic, Square, Loader2, AlertTriangle, Plus, Send, Check, Link as LinkIcon, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import type { StoredPlan, StoredItinerary, ActiveContent, TaskStatus, ConfettiTrigger } from '@/app/page';
-import type { Task, ItineraryActivity } from '@/ai/schemas';
+import type { StoredPlan, StoredItinerary, ActiveContent, TaskStatus, ConfettiTrigger, Status, RecordingMode, Task, ItineraryActivity } from '@/app/types';
 import { PlanView } from './plan-view';
 import { ItineraryView } from './itinerary-view';
 import { VoiceVisualizer } from './voice-visualizer';
@@ -32,10 +31,6 @@ const YouView = dynamic(() => import('./you-view').then(mod => mod.YouView), {
         </div>
     )
 });
-
-
-type Status = 'idle' | 'recording' | 'processing' | 'success' | 'error';
-type RecordingMode = 'newContent' | 'subtask' | 'updatePlan' | 'updateItinerary';
 
 interface AppContentProps {
     status: Status;

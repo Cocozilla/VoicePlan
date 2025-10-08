@@ -4,27 +4,26 @@
 import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { addSubtasksFromVoice, fetchUserInsights, signUpWithEmail, signInWithEmail, signOutFromApp, updatePlanFromVoice, updateItineraryFromVoice, generateContentFromVoice } from './actions';
-import type { GeneratePlanFromTextOutput, Task, SubTask, GenerateItineraryFromTextOutput, ItineraryDay, ItineraryActivity, StoredPlan, StoredItinerary } from '@/ai/schemas';
 import { MainLayout } from '@/components/app/main-layout';
-import { useFirestore, useUser, useMemoFirebase, FirebaseClientProvider } from '@/firebase';
+import { useFirestore, useUser, FirebaseClientProvider } from '@/firebase';
 import { collection, doc, getDoc, setDoc, deleteDoc, query, orderBy, getDocs, writeBatch } from "firebase/firestore";
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 import { signInAnonymously } from 'firebase/auth';
 import { useAuth } from '@/firebase';
-
-type Status = 'idle' | 'recording' | 'processing' | 'success' | 'error';
-export type AppTheme = 'light' | 'dark';
-export type ColorTheme = 'purple' | 'mint' | 'red' | 'blue';
-export type TaskStatus = 'To Do' | 'In Progress' | 'Done';
-
-type RecordingMode = 'newContent' | 'subtask' | 'updatePlan' | 'updateItinerary';
-export type ActiveContent = { type: 'plan', data: StoredPlan } | { type: 'itinerary', data: StoredItinerary } | null;
-
-export type ConfettiTrigger = {
-    id: string;
-    timestamp: number;
-} | null;
-
+import type { 
+    StoredPlan, 
+    StoredItinerary, 
+    GeneratePlanFromTextOutput,
+    GenerateItineraryFromTextOutput,
+    Task,
+    Status,
+    AppTheme,
+    ColorTheme,
+    TaskStatus,
+    RecordingMode,
+    ActiveContent,
+    ConfettiTrigger
+} from './types';
 
 function HomePageContent() {
   // State for UI and content
