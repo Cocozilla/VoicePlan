@@ -14,7 +14,6 @@ export const ai = genkit({
   plugins: [
     googleAI({ apiKey: process.env.GEMINI_API_KEY }),
   ],
-  enableTracingAndMetrics: false,
 });
 
 // Export stable model names for use in all flows.
