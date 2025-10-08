@@ -8,7 +8,7 @@ import { SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMen
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format, parseISO, isValid } from 'date-fns';
-import type { StoredPlan, StoredItinerary, ColorTheme } from '@/ai/schemas';
+import type { StoredPlan, StoredItinerary, ColorTheme } from '@/app/types';
 import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { cn } from '@/lib/utils';

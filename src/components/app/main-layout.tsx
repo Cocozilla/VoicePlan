@@ -6,11 +6,19 @@ import { Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app/app-sidebar';
 import { MobileHeader } from '@/components/app/mobile-header';
 import { AppContent } from '@/components/app/app-content';
-import type { StoredPlan, StoredItinerary, AppTheme, ColorTheme, ActiveContent, TaskStatus, ConfettiTrigger, Task } from '@/ai/schemas';
+import type { 
+    StoredPlan, 
+    StoredItinerary, 
+    AppTheme, 
+    ColorTheme, 
+    ActiveContent, 
+    TaskStatus, 
+    ConfettiTrigger, 
+    Task,
+    Status,
+    RecordingMode
+} from '@/app/types';
 import type { User } from 'firebase/auth';
-
-type Status = 'idle' | 'recording' | 'processing' | 'success' | 'error';
-type RecordingMode = 'newContent' | 'subtask' | 'updatePlan' | 'updateItinerary';
 
 // This is now a purely presentational component.
 // All state and logic are managed in `src/app/page.tsx`.

@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import type { StoredPlan, StoredItinerary } from '@/ai/schemas';
+import type { StoredPlan, StoredItinerary } from '@/app/types';
 
 
 export default function SharePage() {
