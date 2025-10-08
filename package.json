@@ -15,6 +15,7 @@
   "dependencies": {
     "@genkit-ai/firebase": "1.20.0",
     "@genkit-ai/googleai": "latest",
+    "@genkit-ai/next": "1.20.0",
     "@hookform/resolvers": "^3.9.0",
     "@opentelemetry/exporter-jaeger": "^2.1.0",
     "@opentelemetry/winston-transport": "^0.16.0",
@@ -50,6 +51,7 @@
     "framer-motion": "^11.3.8",
     "genkit": "^1.20.0",
     "lucide-react": "^0.416.0",
+    "next": "14.2.4",
     "react": "18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "18.3.1",
@@ -64,7 +66,6 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "genkit-cli": "1.20.0",
-    "next": "14.2.4",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.7",
     "typescript": "^5.5.4"
