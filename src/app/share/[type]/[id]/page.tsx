@@ -19,6 +19,7 @@ interface SharePageProps {
         type: 'plan' | 'itinerary';
         id: string;
     };
+    searchParams: { [key: string]: string | string[] | undefined };
 }
 
 

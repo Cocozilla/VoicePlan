@@ -1,5 +1,5 @@
 // Next.js App Router route handler for Genkit.
-import { genkit } from '@genkit-ai/next';
+import { createGenkitAndRun } from '@genkit-ai/next';
 
 // Import the main Genkit configuration and all the flow files.
 // This is essential to register the flows with the Next.js server.
@@ -12,4 +12,4 @@ import '@/ai/flows/route-user-request';
 import '@/ai/flows/transcribe-voice-input';
 
 
-export const { GET, POST } = genkit();
+export const { GET, POST } = createGenkitAndRun();
