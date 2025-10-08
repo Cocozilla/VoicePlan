@@ -38,7 +38,7 @@ type FlowOutput =
 export async function determineAndGenerateContent(
   input: DetermineAndGenerateContentInput
 ): Promise<DetermineAndGenerateContentOutput> {
-  return routeUserRequestFlow(input);
+  return routeUserRequest(input);
 }
 
 // Safely normalize the recognized intent to our literal type
@@ -54,13 +54,13 @@ const recognizeIntentPrompt = ai.definePrompt({
     input: { schema: DetermineAndGenerateContentInputSchema },
     output: { schema: RecognizeIntentOutputSchema },
     model: geminiPro,
-    prompt: `Analyze the following text and determine the user\'s primary intent. The user wants to create either a plan (like a to-do list, project plan) or a travel itinerary.\n\n- If the text clearly describes tasks, to-do lists, goals, schedules, or explicitly asks to create a plan, the intent is \'createPlan\'.\n- If the text describes a trip, vacation, travel dates, destinations, or explicitly asks for an itinerary, the intent is \'createItinerary\'.\n- If the \'context\' field is \'plan\', it is highly likely the user wants to update or create a plan.\n- If the \'context\' field is \'itinerary\', it is highly likely the user wants to update or create an itinerary.\n- For anything else that doesn\'t fit (e.g., simple questions, greetings, unrelated statements), the intent is \'unsupported\'.\n\nTranscribed Text:\n{{{transcribedText}}}\n\n{{#if context}}\nCurrent Context: The user is currently viewing a {{context}}.\n{{/if}}\n    `,
+    prompt: `Analyze the following text and determine the user's primary intent. The user wants to create either a plan (like a to-do list, project plan) or a travel itinerary.\n\n- If the text clearly describes tasks, to-do lists, goals, schedules, or explicitly asks to create a plan, the intent is 'createPlan'.\n- If the text describes a trip, vacation, travel dates, destinations, or explicitly asks for an itinerary, the intent is 'createItinerary'.\n- If the 'context' field is 'plan', it is highly likely the user wants to update or create a plan.\n- If the 'context' field is 'itinerary', it is highly likely the user wants to update or create an itinerary.\n- For anything else that doesn't fit (e.g., simple questions, greetings, unrelated statements), the intent is 'unsupported'.\n\nTranscribed Text:\n{{{transcribedText}}}\n\n{{#if context}}\nCurrent Context: The user is currently viewing a {{context}}.\n{{/if}}\n    `,
 });
 
 
-const routeUserRequestFlow = ai.defineFlow(
+export const routeUserRequest = ai.defineFlow(
   {
-    name: 'routeUserRequestFlow',
+    name: 'routeUserRequest',
     inputSchema: DetermineAndGenerateContentInputSchema,
     outputSchema: DetermineAndGenerateContentOutputSchema,
   },

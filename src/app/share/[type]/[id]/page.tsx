@@ -10,18 +10,18 @@ import { ItineraryView } from '@/components/app/itinerary-view';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { usePathname } from 'next/navigation';
-import type { GeneratePlanFromTextOutput, GenerateItineraryFromTextOutput, StoredPlan, StoredItinerary } from '@/ai/schemas';
+import { useParams } from 'next/navigation';
+import type { StoredPlan, StoredItinerary } from '@/ai/schemas';
 
 
-export default function SharePage({ params }: { params: { type: 'plan' | 'itinerary', id: string } }) {
+export default function SharePage() {
+    const { type, id } = useParams<{ type: 'plan' | 'itinerary'; id: string }>();
     const [content, setContent] = useState<StoredPlan | StoredItinerary | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const pathname = usePathname();
 
     useEffect(() => {
-        if (params.id && params.type) {
+        if (id && type) {
             const fetchContent = async () => {
                 const { firestore } = initializeFirebase();
                 if (!firestore) {
@@ -31,8 +31,8 @@ export default function SharePage({ params }: { params: { type: 'plan' | 'itiner
                 }
                 try {
                     // This path reads from the public collection, which is populated by the save functions.
-                    const collectionName = params.type === 'plan' ? 'plans' : 'itineraries';
-                    const docRef = doc(firestore, collectionName, params.id);
+                    const collectionName = type === 'plan' ? 'plans' : 'itineraries';
+                    const docRef = doc(firestore, collectionName, id);
                     const docSnap = await getDoc(docRef);
 
                     if (docSnap.exists()) {
@@ -50,7 +50,7 @@ export default function SharePage({ params }: { params: { type: 'plan' | 'itiner
 
             fetchContent();
         }
-    }, [params.id, params.type]);
+    }, [id, type]);
 
     const ReadOnlyWrapper = ({ children }: { children: React.ReactNode }) => (
         <div className="pointer-events-none">
@@ -104,7 +104,7 @@ export default function SharePage({ params }: { params: { type: 'plan' | 'itiner
             <div className="absolute pointer-events-none inset-0 flex items-center justify-center bg-background [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"></div>
             
             <div className="z-10 w-full max-w-2xl">
-                {params.type === 'plan' ? (
+                {type === 'plan' ? (
                      <ReadOnlyWrapper>
                         <PlanView plan={content as StoredPlan} handleTaskStatusChange={()=>{}} handleSubTaskStatusChange={()=>{}} handleStartRecording={()=>{}} editingId={null} editingTitle={""} setEditingTitle={()=>{}} handleEditTitle={()=>{}} handleSaveTitle={()=>{}} handleTitleKeyDown={()=>{}} resetToIdle={()=>{}} handleCopyLink={()=>{}} confettiTrigger={null} />
                     </ReadOnlyWrapper>
