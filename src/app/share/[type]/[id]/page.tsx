@@ -14,16 +14,7 @@ import { usePathname } from 'next/navigation';
 import type { GeneratePlanFromTextOutput, GenerateItineraryFromTextOutput, StoredPlan, StoredItinerary } from '@/ai/schemas';
 
 
-interface SharePageProps {
-    params: {
-        type: 'plan' | 'itinerary';
-        id: string;
-    };
-    searchParams: { [key: string]: string | string[] | undefined };
-}
-
-
-export default function SharePage({ params }: SharePageProps) {
+export default function SharePage({ params }: { params: { type: 'plan' | 'itinerary', id: string } }) {
     const [content, setContent] = useState<StoredPlan | StoredItinerary | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
