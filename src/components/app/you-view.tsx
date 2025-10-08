@@ -30,9 +30,19 @@ export function YouView({ planHistory, itineraryHistory }: YouViewProps) {
     const [insights, setInsights] = useState<GenerateUserInsightsOutput | null>(null);
     const [insightsLoading, setInsightsLoading] = useState(true);
     const [agenda, setAgenda] = useState<AgendaItem[]>([]);
-
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        // This effect runs only once on the client side after the component mounts
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        // Don't run any of this logic until the component has mounted on the client
+        if (!isClient) {
+            return;
+        }
+
         if (planHistory.length > 0 || itineraryHistory.length > 0) {
             setLoading(false);
             fetchInsights();
@@ -42,7 +52,7 @@ export function YouView({ planHistory, itineraryHistory }: YouViewProps) {
              setInsightsLoading(false);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [planHistory, itineraryHistory]);
+    }, [isClient, planHistory, itineraryHistory]);
 
     const fetchInsights = async () => {
         setInsightsLoading(true);
@@ -299,7 +309,7 @@ export function YouView({ planHistory, itineraryHistory }: YouViewProps) {
                                 <Bar dataKey="value" layout="vertical" radius={5}>
                                     {chartData.map((entry) => (
                                         <Cell key={`cell-${entry.name}`} fill={chartConfig[entry.name as keyof typeof chartConfig]?.color} />
-                                    ))}
+                                    ))}\
                                 </Bar>
                             </BarChart>
                         </ChartContainer>
