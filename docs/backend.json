@@ -1,0 +1,390 @@
+{
+  "entities": {
+    "Plan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Plan",
+      "type": "object",
+      "description": "Represents a user's plan, containing tasks and associated details.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Plan entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the Plan."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the plan was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the plan was last updated.",
+          "format": "date-time"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Plan)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "createdAt",
+        "updatedAt",
+        "userId"
+      ]
+    },
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
+      "type": "object",
+      "description": "Represents a task within a plan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Task entity."
+        },
+        "planId": {
+          "type": "string",
+          "description": "Reference to Plan. (Relationship: Plan 1:N Task)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name or title of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the task."
+        },
+        "deadline": {
+          "type": "string",
+          "description": "The due date or deadline for the task.",
+          "format": "date-time"
+        },
+        "priority": {
+          "type": "string",
+          "description": "The priority of the task (e.g., High, Medium, Low)."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Indicates whether the task has been completed."
+        }
+      },
+      "required": [
+        "id",
+        "planId",
+        "name",
+        "description",
+        "deadline",
+        "priority",
+        "completed"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the VoicePlan application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ]
+    },
+    "Reminder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reminder",
+      "type": "object",
+      "description": "Represents a reminder for a specific task.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Reminder entity."
+        },
+        "taskId": {
+          "type": "string",
+          "description": "Reference to Task. (Relationship: Task 1:N Reminder)"
+        },
+        "remindAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the reminder should be triggered.",
+          "format": "date-time"
+        },
+        "message": {
+          "type": "string",
+          "description": "Message to display when the reminder is triggered."
+        }
+      },
+      "required": [
+        "id",
+        "taskId",
+        "remindAt",
+        "message"
+      ]
+    },
+    "Person": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Person",
+      "type": "object",
+      "description": "Represents a person mentioned in a plan or task.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Person entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the person."
+        },
+        "planId": {
+          "type": "string",
+          "description": "Reference to Plan. (Relationship: Plan 1:N Person)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "planId"
+      ]
+    },
+    "Organization": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Organization",
+      "type": "object",
+      "description": "Represents an organization mentioned in a plan or task.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Organization entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the organization."
+        },
+        "planId": {
+          "type": "string",
+          "description": "Reference to Plan. (Relationship: Plan 1:N Organization)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "planId"
+      ]
+    },
+    "Location": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Location",
+      "type": "object",
+      "description": "Represents a location mentioned in a plan or task.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Location entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the location."
+        },
+        "planId": {
+          "type": "string",
+          "description": "Reference to Plan. (Relationship: Plan 1:N Location)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "planId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection to store user profiles.  User documents are only accessible by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/plans/{planId}",
+        "definition": {
+          "entityName": "Plan",
+          "schema": {
+            "$ref": "#/backend/entities/Plan"
+          },
+          "description": "Collection to store plans for each user. Includes 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "planId",
+              "description": "The unique identifier for the plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/plans/{planId}/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Collection to store tasks associated with each plan. Includes 'planId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "planId",
+              "description": "The unique identifier for the plan."
+            },
+            {
+              "name": "taskId",
+              "description": "The unique identifier for the task."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId}",
+        "definition": {
+          "entityName": "Reminder",
+          "schema": {
+            "$ref": "#/backend/entities/Reminder"
+          },
+          "description": "Collection to store reminders associated with each task. Includes 'taskId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "planId",
+              "description": "The unique identifier for the plan."
+            },
+            {
+              "name": "taskId",
+              "description": "The unique identifier for the task."
+            },
+            {
+              "name": "reminderId",
+              "description": "The unique identifier for the reminder."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/plans/{planId}/people/{personId}",
+        "definition": {
+          "entityName": "Person",
+          "schema": {
+            "$ref": "#/backend/entities/Person"
+          },
+          "description": "Collection to store people mentioned in each plan. Includes 'planId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "planId",
+              "description": "The unique identifier for the plan."
+            },
+            {
+              "name": "personId",
+              "description": "The unique identifier for the person."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/plans/{planId}/organizations/{organizationId}",
+        "definition": {
+          "entityName": "Organization",
+          "schema": {
+            "$ref": "#/backend/entities/Organization"
+          },
+          "description": "Collection to store organizations mentioned in each plan. Includes 'planId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "planId",
+              "description": "The unique identifier for the plan."
+            },
+            {
+              "name": "organizationId",
+              "description": "The unique identifier for the organization."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/plans/{planId}/locations/{locationId}",
+        "definition": {
+          "entityName": "Location",
+          "schema": {
+            "$ref": "#/backend/entities/Location"
+          },
+          "description": "Collection to store locations mentioned in each plan. Includes 'planId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "planId",
+              "description": "The unique identifier for the plan."
+            },
+            {
+              "name": "locationId",
+              "description": "The unique identifier for the location."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, in accordance with the stated principles.  Authorization Independence is achieved by storing the `userId` directly within the `plans` collection, eliminating the need for `get()` calls in security rules. Furthermore, storing `planId` within the `tasks`, `people`, `organizations`, and `locations` collections associated with a plan also facilitates Authorization Independence. Path-based ownership (`/users/{userId}/plans/{planId}`) is used for `plans` to ensure simple, robust security rules. All documents within the same collection share identical security requirements to ensure a Homogeneous Security Posture.  The structure supports secure list operations via structural segregation; each user's data is segregated under their respective `/users/{userId}` path."
+  }
+}
