@@ -11,6 +11,7 @@ export type {
   GeneratePlanFromTextOutput,
   GenerateItineraryFromTextOutput,
   ItineraryDay,
+  GenerateUserInsightsOutput
 } from '@/ai/schemas';
 
 // --- App-wide Enums and Types ---

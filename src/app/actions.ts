@@ -15,7 +15,6 @@ import type {
     AddSubtasksToTaskInput, 
     AddSubtasksToTaskOutput,
     GenerateItineraryFromTextInput, 
-    GenerateItineraryFromTextOutput,
     GenerateUserInsightsInput, 
     DetermineAndGenerateContentInput, 
     DetermineAndGenerateContentOutput, 
@@ -26,8 +25,9 @@ import type {
 import type { 
     StoredPlan,
     StoredItinerary,
-    GenerateUserInsightsOutput
-} from '@/ai/schemas';
+    GenerateUserInsightsOutput,
+    GenerateItineraryFromTextOutput
+} from '@/app/types';
 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { auth } from '@/firebase/server-init';
