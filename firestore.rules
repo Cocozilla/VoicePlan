@@ -1,98 +1,216 @@
+/**
+ * @fileoverview Firestore Security Rules for VoicePlan application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for all data. Each user can only
+ * access data associated with their own user ID. This is achieved through path-based
+ * authorization and data denormalization (embedding `userId` in relevant documents).
+ *
+ * Data Structure:
+ * The data is structured hierarchically under `/users/{userId}`, with subcollections
+ * for `plans`, `tasks`, `reminders`, `people`, `organizations`, and `locations`. This
+ * structure ensures that all data is scoped to a specific user.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed to prevent enumeration.
+ * - All write operations are restricted to the owner of the data.
+ * - The ruleset prioritizes simplicity and performance by avoiding `get()` calls
+ *   and enforcing data consistency through validation rules.
+ * - Data validation is relaxed in this prototype, focusing on ownership and
+ *   relational integrity (e.g., enforcing that `userId` matches the path).
+ *
+ * Denormalization for Authorization:
+ * The `plans` documents include a `userId` field, tasks include a `planId` field, and
+ * other entities nested under plans include a `planId` field, which simplifies
+ * authorization rules and avoids costly `get()` calls.
+ *
+ * Structural Segregation:
+ * User-specific data is stored under the `/users/{userId}` path, ensuring that data
+ * is isolated and accessible only to the owner.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /users/{userId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    match /users/{userId}/plans/{planId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- Start of Fix ---
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
     /**
-     * @description Grants access to itineraries belonging to a specific user.
-     * @path /users/{userId}/itineraries/{itineraryId}
-     * @allow (get, create, update, delete, list) if the user is signed in and owns the data.
-     * @principle Enforces document ownership for itineraries.
+     * @description Grants access to user profiles.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' can create their own profile.
+     *   - auth.uid: 'user123'
+     *   - request.resource.data.id: 'user123'
+     * @allow (get) User with ID 'user123' can read their own profile.
+     *   - auth.uid: 'user123'
+     * @allow (update) User with ID 'user123' can update their own profile.
+     *   - auth.uid: 'user123'
+     * @allow (delete) User with ID 'user123' can delete their own profile.
+     *   - auth.uid: 'user123'
+     * @deny (create) User with ID 'user123' cannot create a profile with a different ID.
+     *   - auth.uid: 'user123'
+     *   - request.resource.data.id: 'user456'
+     * @deny (get) User with ID 'user123' cannot read another user's profile.
+     *   - auth.uid: 'user456'
+     * @principle Enforces document ownership for writes.
      */
-    match /users/{userId}/itineraries/{itineraryId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
-    // --- End of Fix ---
 
+    /**
+     * @description Grants access to plans for each user.
+     * @path /users/{userId}/plans/{planId}
+     * @allow (create) User with ID 'user123' can create a plan.
+     *   - auth.uid: 'user123'
+     *   - request.resource.data.userId: 'user123'
+     * @allow (get) User with ID 'user123' can read their own plan.
+     *   - auth.uid: 'user123'
+     * @allow (update) User with ID 'user123' can update their own plan.
+     *   - auth.uid: 'user123'
+     * @allow (delete) User with ID 'user123' can delete their own plan.
+     *   - auth.uid: 'user123'
+     * @deny (create) User with ID 'user123' cannot create a plan for another user.
+     *   - auth.uid: 'user123'
+     *   - request.resource.data.userId: 'user456'
+     * @deny (get) User with ID 'user123' cannot read another user's plan.
+     *   - auth.uid: 'user456'
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/plans/{planId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Grants access to tasks associated with each plan.
+     * @path /users/{userId}/plans/{planId}/tasks/{taskId}
+     * @allow (create) User with ID 'user123' can create a task for their plan.
+     *   - auth.uid: 'user123'
+     * @allow (get) User with ID 'user123' can read their own task.
+     *   - auth.uid: 'user123'
+     * @allow (update) User with ID 'user123' can update their own task.
+     *   - auth.uid: 'user123'
+     * @allow (delete) User with ID 'user123' can delete their own task.
+     *   - auth.uid: 'user123'
+     * @deny (get) User with ID 'user123' cannot read another user's task.
+     *   - auth.uid: 'user456'
+     * @principle Enforces document ownership for writes.
+     */
     match /users/{userId}/plans/{planId}/tasks/{taskId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
+    /**
+     * @description Grants access to reminders associated with each task.
+     * @path /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId}
+     * @allow (create) User with ID 'user123' can create a reminder for their task.
+     *   - auth.uid: 'user123'
+     * @allow (get) User with ID 'user123' can read their own reminder.
+     *   - auth.uid: 'user123'
+     * @allow (update) User with ID 'user123' can update their own reminder.
+     *   - auth.uid: 'user123'
+     * @allow (delete) User with ID 'user123' can delete their own reminder.
+     *   - auth.uid: 'user123'
+     * @deny (get) User with ID 'user123' cannot read another user's reminder.
+     *   - auth.uid: 'user456'
+     * @principle Enforces document ownership for writes.
+     */
     match /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
+    /**
+     * @description Grants access to people mentioned in each plan.
+     * @path /users/{userId}/plans/{planId}/people/{personId}
+     * @allow (create) User with ID 'user123' can create a person for their plan.
+     *   - auth.uid: 'user123'
+     * @allow (get) User with ID 'user123' can read their own person.
+     *   - auth.uid: 'user123'
+     * @allow (update) User with ID 'user123' can update their own person.
+     *   - auth.uid: 'user123'
+     * @allow (delete) User with ID 'user123' can delete their own person.
+     *   - auth.uid: 'user123'
+     * @deny (get) User with ID 'user123' cannot read another user's person.
+     *   - auth.uid: 'user456'
+     * @principle Enforces document ownership for writes.
+     */
     match /users/{userId}/plans/{planId}/people/{personId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
+    /**
+     * @description Grants access to organizations mentioned in each plan.
+     * @path /users/{userId}/plans/{planId}/organizations/{organizationId}
+     * @allow (create) User with ID 'user123' can create an organization for their plan.
+     *   - auth.uid: 'user123'
+     * @allow (get) User with ID 'user123' can read their own organization.
+     *   - auth.uid: 'user123'
+     * @allow (update) User with ID 'user123' can update their own organization.
+     *   - auth.uid: 'user123'
+     * @allow (delete) User with ID 'user123' can delete their own organization.
+     *   - auth.uid: 'user123'
+     * @deny (get) User with ID 'user123' cannot read another user's organization.
+     *   - auth.uid: 'user456'
+     * @principle Enforces document ownership for writes.
+     */
     match /users/{userId}/plans/{planId}/organizations/{organizationId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
+    /**
+     * @description Grants access to locations mentioned in each plan.
+     * @path /users/{userId}/plans/{planId}/locations/{locationId}
+     * @allow (create) User with ID 'user123' can create a location for their plan.
+     *   - auth.uid: 'user123'
+     * @allow (get) User with ID 'user123' can read their own location.
+     *   - auth.uid: 'user123'
+     * @allow (update) User with ID 'user123' can update their own location.
+     *   - auth.uid: 'user123'
+     * @allow (delete) User with ID 'user123' can delete their own location.
+     *   - auth.uid: 'user123'
+     * @deny (get) User with ID 'user123' cannot read another user's location.
+     *   - auth.uid: 'user456'
+     * @principle Enforces document ownership for writes.
+     */
     match /users/{userId}/plans/{planId}/locations/{locationId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
-
-    match /users/{userId}/fcmTokens/{tokenId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
-  }
-
-  // Helper Functions
-  function isSignedIn() {
-    return request.auth != null;
-  }
-
-  function isOwner(userId) {
-    return request.auth.uid == userId;
-  }
-
-  function isExistingOwner(userId) {
-    return isSignedIn() && isOwner(userId) && resource != null;
   }
 }

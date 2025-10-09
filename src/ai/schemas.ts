@@ -103,8 +103,8 @@ export type GeneratePlanFromTextInput = z.infer<typeof GeneratePlanFromTextInput
 export type GeneratePlanFromTextOutput = z.infer<typeof GeneratePlanFromTextOutputSchema>;
 export type GenerateItineraryFromTextInput = z.infer<typeof GenerateItineraryFromTextInputSchema>;
 export type GenerateItineraryFromTextOutput = z.infer<typeof GenerateItineraryFromTextOutputSchema>;
-export type StoredPlan = GeneratePlanFromTextOutput & { id: string; createdAt: string; updatedAt: string; transcription: string };
-export type StoredItinerary = GenerateItineraryFromTextOutput & { id: string; createdAt: string; updatedAt: string; transcription: string };
+export type StoredPlan = GeneratePlanFromTextOutput & { id: string; userId: string; createdAt: string; updatedAt: string; transcription: string };
+export type StoredItinerary = GenerateItineraryFromTextOutput & { id: string; userId: string; createdAt: string; updatedAt: string; transcription: string };
 
 
 // Schemas for Intent Recognition
@@ -170,7 +170,7 @@ export const GenerateUserInsightsOutputSchema = z.object({
 export type GenerateUserInsightsOutput = z.infer<typeof GenerateUserInsightsOutputSchema>;
 
 export const GenerateUserInsightsInputSchema = z.object({
-  planHistory: z.array(GeneratePlanFromTextOutputSchema.extend({ id: z.string(), createdAt: z.string(), updatedAt: z.string(), transcription: z.string() })).describe("The user's past plans."),
-  itineraryHistory: z.array(GenerateItineraryFromTextOutputSchema.extend({ id: z.string(), createdAt: z.string(), updatedAt: z.string(), transcription: z.string() })).describe("The user's past itineraries."),
+  planHistory: z.array(GeneratePlanFromTextOutputSchema.extend({ id: z.string(), userId: z.string(), createdAt: z.string(), updatedAt: z.string(), transcription: z.string() })).describe("The user's past plans."),
+  itineraryHistory: z.array(GenerateItineraryFromTextOutputSchema.extend({ id: z.string(), userId: z.string(), createdAt: z.string(), updatedAt: z.string(), transcription: z.string() })).describe("The user's past itineraries."),
 });
 export type GenerateUserInsightsInput = z.infer<typeof GenerateUserInsightsInputSchema>;

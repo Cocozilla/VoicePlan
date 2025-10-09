@@ -288,12 +288,22 @@ function HomePageContent() {
               } else if (result.error) {
                 setErrorMessage(result.error); setStatus('error');
               } else if (result.content?.type === 'plan' && result.content.data) {
-                  const newPlan: StoredPlan = {...(result.content.data as GeneratePlanFromTextOutput), id: `plan-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), transcription: result.transcription || '' };
+                  if (!user) {
+                      setErrorMessage("You must be logged in to create a plan.");
+                      setStatus('error');
+                      break;
+                  }
+                  const newPlan: StoredPlan = {userId: user.uid, ...(result.content.data as GeneratePlanFromTextOutput), id: `plan-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), transcription: result.transcription || '' };
                   setActiveContent({type: 'plan', data: newPlan});
                   savePlan(newPlan);
                   setStatus('success'); setActiveTab('plans');
               } else if (result.content?.type === 'itinerary' && result.content.data) {
-                  const newItinerary: StoredItinerary = {...(result.content.data as GenerateItineraryFromTextOutput), id: `itinerary-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), transcription: result.transcription || '' };
+                  if (!user) {
+                      setErrorMessage("You must be logged in to create an itinerary.");
+                      setStatus('error');
+                      break;
+                  }
+                  const newItinerary: StoredItinerary = {userId: user.uid, ...(result.content.data as GenerateItineraryFromTextOutput), id: `itinerary-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), transcription: result.transcription || '' };
                   setActiveContent({type: 'itinerary', data: newItinerary});
                   saveItinerary(newItinerary);
                   setStatus('success'); setActiveTab('itineraries');
