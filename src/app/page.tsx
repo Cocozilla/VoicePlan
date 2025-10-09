@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { addSubtasksFromVoice, fetchUserInsights, signUpWithEmail, signInWithEmail, signOutFromApp, updatePlanFromVoice, updateItineraryFromVoice, generateContentFromVoice } from './actions';
 import { MainLayout } from '@/components/app/main-layout';
-import { useFirestore, useUser, FirebaseClientProvider } from '@/firebase';
+import { useFirestore, useUser, FirebaseClientProvider, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, getDoc, setDoc, deleteDoc, query, orderBy, getDocs, writeBatch } from "firebase/firestore";
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 import { signInAnonymously } from 'firebase/auth';
@@ -200,13 +200,15 @@ function HomePageContent() {
 
     if (!firestore || !user) return;
     
-    try {
-        const userPlanRef = doc(firestore, `users/${user.uid}/plans`, plan.id);
-        await setDoc(userPlanRef, plan);
-    } catch(error) {
-        console.error("Error saving plan:", error);
-        toast({ variant: "destructive", title: "Save Error", description: "Could not sync your plan." });
-    }
+    const userPlanRef = doc(firestore, `users/${user.uid}/plans`, plan.id);
+    setDoc(userPlanRef, plan, { merge: true }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: userPlanRef.path,
+        operation: 'write',
+        requestResourceData: plan,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   }
   
   const saveItinerary = async (itinerary: StoredItinerary) => {
@@ -223,13 +225,15 @@ function HomePageContent() {
 
     if (!firestore || !user) return;
 
-    try {
-        const userItineraryRef = doc(firestore, `users/${user.uid}/itineraries`, itinerary.id);
-        await setDoc(userItineraryRef, itinerary);
-    } catch(error) {
-         console.error("Error saving itinerary:", error);
-        toast({ variant: "destructive", title: "Save Error", description: "Could not sync your itinerary." });
-    }
+    const userItineraryRef = doc(firestore, `users/${user.uid}/itineraries`, itinerary.id);
+    setDoc(userItineraryRef, itinerary, { merge: true }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: userItineraryRef.path,
+        operation: 'write',
+        requestResourceData: itinerary,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   }
 
   const handleStartRecording = async (mode: RecordingMode, task?: Task) => {
@@ -405,30 +409,38 @@ function HomePageContent() {
   
   const handleDeletePlan = async (e: React.MouseEvent, planId: string) => {
     e.stopPropagation();
+    if (!firestore || !user) return;
+
     setPlanHistory(prev => prev.filter(p => p.id !== planId));
     if (activeContent?.data.id === planId) resetToIdle();
-    if (!firestore || !user) return;
-    try {
-        await deleteDoc(doc(firestore, `users/${user.uid}/plans`, planId));
-    } catch (error) {
-        console.error("Error deleting plan: ", error);
-        toast({ variant: "destructive", title: "Delete Error", description: "Could not delete the plan." });
-        if(user) fetchHistoryFromFirestore(user.uid);
-    }
+    
+    const planRef = doc(firestore, `users/${user.uid}/plans`, planId);
+    deleteDoc(planRef).catch(async (serverError) => {
+        if(user) fetchHistoryFromFirestore(user.uid); // Refetch to restore optimistic update
+        const permissionError = new FirestorePermissionError({
+            path: planRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   }
 
   const handleDeleteItinerary = async (e: React.MouseEvent, itineraryId: string) => {
     e.stopPropagation();
+    if (!firestore || !user) return;
+    
     setItineraryHistory(prev => prev.filter(i => i.id !== itineraryId));
     if (activeContent?.data.id === itineraryId) resetToIdle();
-    if (!firestore || !user) return;
-    try {
-        await deleteDoc(doc(firestore, `users/${user.uid}/itineraries`, itineraryId));
-    } catch (error) {
-        console.error("Error deleting itinerary: ", error);
-        toast({ variant: "destructive", title: "Delete Error", description: "Could not delete the itinerary." });
-        if(user) fetchHistoryFromFirestore(user.uid);
-    }
+
+    const itineraryRef = doc(firestore, `users/${user.uid}/itineraries`, itineraryId);
+    deleteDoc(itineraryRef).catch(async (serverError) => {
+        if(user) fetchHistoryFromFirestore(user.uid); // Refetch to restore optimistic update
+        const permissionError = new FirestorePermissionError({
+            path: itineraryRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   }
 
   return (
