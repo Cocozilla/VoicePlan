@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { StoredPlan, TaskStatus, ConfettiTrigger } from '@/app/page';
+import type { StoredPlan, TaskStatus, ConfettiTrigger } from '@/app/types';
 import type { Task } from '@/ai/schemas';
 import { Confetti } from '../ui/confetti';
 

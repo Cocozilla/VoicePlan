@@ -17,14 +17,17 @@ import type {
     GenerateItineraryFromTextInput, 
     GenerateItineraryFromTextOutput,
     GenerateUserInsightsInput, 
-    GenerateUserInsightsOutput,
     DetermineAndGenerateContentInput, 
     DetermineAndGenerateContentOutput, 
     GeneratePlanFromTextInput, 
-    GeneratePlanFromTextOutput,
-    StoredPlan,
-    StoredItinerary
+    GeneratePlanFromTextOutput
 } from '@/ai/schemas';
+
+import type { 
+    StoredPlan,
+    StoredItinerary,
+    GenerateUserInsightsOutput
+} from '@/app/types';
 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { auth } from '@/firebase/server-init';

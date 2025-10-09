@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import type { StoredPlan, StoredItinerary, Task, ItineraryActivity, GenerateUserInsightsOutput } from '@/ai/schemas';
+import type { StoredPlan, StoredItinerary, Task, ItineraryActivity, GenerateUserInsightsOutput } from '@/app/types';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchUserInsights } from '@/app/actions';
