@@ -17,6 +17,7 @@ import type {
     GenerateItineraryFromTextInput, 
     GenerateItineraryFromTextOutput,
     GenerateUserInsightsInput, 
+    GenerateUserInsightsOutput,
     DetermineAndGenerateContentInput, 
     DetermineAndGenerateContentOutput, 
     GeneratePlanFromTextInput, 
@@ -25,8 +26,7 @@ import type {
 
 import type { 
     StoredPlan,
-    StoredItinerary,
-    GenerateUserInsightsOutput
+    StoredItinerary
 } from '@/app/types';
 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
