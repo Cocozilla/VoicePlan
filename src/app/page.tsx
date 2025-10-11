@@ -293,7 +293,7 @@ function HomePageContent() {
                       setStatus('error');
                       break;
                   }
-                  const newPlan: StoredPlan = {userId: user.uid, ...(result.content.data as GeneratePlanFromTextOutput), id: `plan-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), transcription: result.transcription || '' };
+                  const newPlan: StoredPlan = { ...(result.content.data as GeneratePlanFromTextOutput), id: `plan-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), transcription: result.transcription || '', userId: user.uid };
                   setActiveContent({type: 'plan', data: newPlan});
                   savePlan(newPlan);
                   setStatus('success'); setActiveTab('plans');
@@ -303,7 +303,7 @@ function HomePageContent() {
                       setStatus('error');
                       break;
                   }
-                  const newItinerary: StoredItinerary = {userId: user.uid, ...(result.content.data as GenerateItineraryFromTextOutput), id: `itinerary-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), transcription: result.transcription || '' };
+                  const newItinerary: StoredItinerary = { ...(result.content.data as GenerateItineraryFromTextOutput), id: `itinerary-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), transcription: result.transcription || '', userId: user.uid };
                   setActiveContent({type: 'itinerary', data: newItinerary});
                   saveItinerary(newItinerary);
                   setStatus('success'); setActiveTab('itineraries');
