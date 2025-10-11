@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { addSubtasksFromVoice, fetchUserInsights, signUpWithEmail, signInWithEmail, signOutFromApp, updatePlanFromVoice, updateItineraryFromVoice, generateContentFromVoice } from './actions';
 import { MainLayout } from '@/components/app/main-layout';
-import { useFirestore, useUser, FirebaseClientProvider, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, getDoc, setDoc, deleteDoc, query, orderBy, getDocs, writeBatch } from "firebase/firestore";
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 import { signInAnonymously } from 'firebase/auth';
@@ -27,7 +27,7 @@ import type {
 
 export const dynamic = 'force-dynamic';
 
-function HomePageContent() {
+export default function HomePageContent() {
   // State for UI and content
   const [status, setStatus] = useState<Status>('idle');
   const [activeContent, setActiveContent] = useState<ActiveContent>(null);
@@ -67,7 +67,7 @@ function HomePageContent() {
   
   // Anonymous sign-in effect
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (!isUserLoading && !user && auth) {
         signInAnonymously(auth).catch(error => {
             console.warn("Anonymous sign-in failed:", error);
             toast({
@@ -455,6 +455,19 @@ function HomePageContent() {
     });
   }
 
+  if (!firestore || !auth) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen w-full">
+        <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 rounded-full bg-primary animate-pulse"></div>
+            <div className="w-4 h-4 rounded-full bg-primary animate-pulse [animation-delay:0.2s]"></div>
+            <div className="w-4 h-4 rounded-full bg-primary animate-pulse [animation-delay:0.4s]"></div>
+        </div>
+        <p className="mt-4 text-muted-foreground">Initializing...</p>
+      </div>
+    );
+  }
+
   return (
     <MainLayout
       user={user}
@@ -500,12 +513,4 @@ function HomePageContent() {
       saveItinerary={saveItinerary}
     />
   );
-}
-
-export default function Home() {
-    return (
-        <FirebaseClientProvider>
-            <HomePageContent />
-        </FirebaseClientProvider>
-    )
 }
