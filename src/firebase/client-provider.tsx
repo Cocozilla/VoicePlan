@@ -10,23 +10,12 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  // useMemo ensures this expensive initialization only runs once on the client,
-  // after the component has mounted. The 'use client' directive guarantees
-  // this component and its hooks only run in the browser.
+  // useMemo ensures this expensive initialization only runs once on the client.
+  // The 'use client' directive and dynamic import (ssr: false) in the layout
+  // guarantee this component and its hooks only run in the browser.
   const firebaseServices = useMemo(() => {
-    // This check is a safeguard, but useMemo in a client component
-    // effectively ensures this only runs in the browser.
-    if (typeof window !== 'undefined') {
-      return initializeFirebase();
-    }
-    return null;
+    return initializeFirebase();
   }, []);
-
-  // If Firebase services are not yet available (e.g., during the initial server render),
-  // we render null. The actual content will render on the client once Firebase is initialized.
-  if (!firebaseServices) {
-    return null;
-  }
 
   return (
     <FirebaseProvider

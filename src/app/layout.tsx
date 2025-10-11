@@ -3,8 +3,8 @@ import type {Metadata} from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { AppProviders } from './providers';
+
 
 const APP_NAME = "VoicePlan";
 const APP_DESCRIPTION = "Your personal AI-powered planner.";
@@ -40,11 +40,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <head />
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
-          <SidebarProvider>
-              {children}
-          </SidebarProvider>
-        </FirebaseClientProvider>
+        <AppProviders>
+          {children}
+        </AppProviders>
         <Toaster />
       </body>
     </html>
