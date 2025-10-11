@@ -3,12 +3,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { addSubtasksFromVoice, fetchUserInsights, signUpWithEmail, signInWithEmail, signOutFromApp, updatePlanFromVoice, updateItineraryFromVoice, generateContentFromVoice } from './actions';
+import { addSubtasksFromVoice, fetchUserInsights, updatePlanFromVoice, updateItineraryFromVoice, generateContentFromVoice } from './actions';
 import { MainLayout } from '@/components/app/main-layout';
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, getDoc, setDoc, deleteDoc, query, orderBy, getDocs, writeBatch } from "firebase/firestore";
 import { usePWAInstall } from '@/hooks/use-pwa-install';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import type { 
     StoredPlan, 
@@ -118,6 +118,47 @@ export default function HomePageContent() {
   // --- End of Effects ---
 
   // --- Start of Handlers ---
+
+  const handleSignUp = async (values: { email: string, password: string }) => {
+    if (!auth) return { error: "Auth not ready" };
+    try {
+        if (auth.currentUser && auth.currentUser.isAnonymous) {
+            const credential = EmailAuthProvider.credential(values.email, values.password);
+            await linkWithCredential(auth.currentUser, credential);
+            toast({ description: "Account successfully linked!" });
+            return { user: auth.currentUser };
+        } else {
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+            toast({ description: "Welcome! Your account has been created." });
+            return { user: userCredential.user };
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Sign Up Failed', description: e.message });
+        return { error: e.message };
+    }
+  };
+
+  const handleSignIn = async (values: { email: string, password: string }) => {
+    if (!auth) return { error: "Auth not ready" };
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+        toast({ description: "You're signed in." });
+        return { user: userCredential.user };
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Sign In Failed', description: e.message });
+        return { error: e.message };
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!auth) return;
+    try {
+        await signOut(auth);
+        toast({ description: "You have been signed out." });
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Sign Out Failed', description: e.message });
+    }
+  };
 
   const toggleTheme = () => {
     setAppTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
@@ -511,6 +552,9 @@ export default function HomePageContent() {
       toast={toast}
       confettiTrigger={confettiTrigger}
       saveItinerary={saveItinerary}
+      onSignUp={handleSignUp}
+      onSignIn={handleSignIn}
+      onSignOut={handleSignOut}
     />
   );
 }

@@ -19,6 +19,7 @@ import type {
     RecordingMode
 } from '@/app/types';
 import type { User } from 'firebase/auth';
+import { AuthDialog } from './auth-dialog';
 
 // This is now a purely presentational component.
 // All state and logic are managed in `src/app/page.tsx`.
@@ -64,12 +65,21 @@ interface MainLayoutProps {
     toast: any;
     confettiTrigger: ConfettiTrigger;
     saveItinerary: (itinerary: StoredItinerary) => Promise<void>;
+    onSignUp: (values: {email: string, password: string}) => Promise<any>;
+    onSignIn: (values: {email: string, password: string}) => Promise<any>;
+    onSignOut: () => void;
 }
 
 
 export function MainLayout(props: MainLayoutProps) {
     return (
         <>
+            <AuthDialog 
+                open={props.isAuthDialogOpen} 
+                onOpenChange={props.setIsAuthDialogOpen}
+                onSignUp={props.onSignUp}
+                onSignIn={props.onSignIn}
+            />
             <Sidebar>
                 <AppSidebar 
                     user={props.user}
@@ -93,6 +103,7 @@ export function MainLayout(props: MainLayoutProps) {
                     onNotificationToggle={props.onNotificationToggle}
                     isInstallable={props.isInstallable} 
                     onInstall={props.onInstall}
+                    onSignOut={props.onSignOut}
                 />
             </Sidebar>
             <SidebarInset>
@@ -139,6 +150,7 @@ export function MainLayout(props: MainLayoutProps) {
                     <MobileHeader 
                         user={props.user}
                         setIsAuthDialogOpen={props.setIsAuthDialogOpen}
+                        onSignOut={props.onSignOut}
                     />
                 </main>
             </SidebarInset>

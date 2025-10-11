@@ -10,8 +10,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { signInWithEmail, signUpWithEmail } from '@/app/actions';
-import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 const signUpSchema = z.object({
@@ -30,11 +28,13 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 interface AuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSignUp: (values: SignUpFormValues) => Promise<any>;
+  onSignIn: (values: SignInFormValues) => Promise<any>;
 }
 
-export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
+export function AuthDialog({ open, onOpenChange, onSignUp, onSignIn }: AuthDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const { toast } = useToast();
+  const [activeTab, setActiveTab] = React.useState('signup');
 
   const signUpForm = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -48,11 +48,8 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
 
   const handleSignUp = async (values: SignUpFormValues) => {
     setIsSubmitting(true);
-    const result = await signUpWithEmail(values);
-    if (result.error) {
-      toast({ variant: 'destructive', title: 'Sign Up Failed', description: result.error });
-    } else {
-      toast({ description: 'Welcome! Your account has been created.' });
+    const result = await onSignUp(values);
+    if (!result.error) {
       onOpenChange(false);
     }
     setIsSubmitting(false);
@@ -60,15 +57,20 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
 
   const handleSignIn = async (values: SignInFormValues) => {
     setIsSubmitting(true);
-    const result = await signInWithEmail(values);
-    if (result.error) {
-      toast({ variant: 'destructive', title: 'Sign In Failed', description: result.error });
-    } else {
-      toast({ description: "You're signed in." });
+    const result = await onSignIn(values);
+    if (!result.error) {
       onOpenChange(false);
     }
     setIsSubmitting(false);
   };
+
+  React.useEffect(() => {
+    if (open) {
+      signUpForm.reset();
+      signInForm.reset();
+      setIsSubmitting(false);
+    }
+  }, [open, signUpForm, signInForm]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -79,7 +81,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             Create an account to save your plans and access them from any device.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="signup" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
             <TabsTrigger value="signin">Sign In</TabsTrigger>

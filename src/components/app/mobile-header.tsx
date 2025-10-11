@@ -1,42 +1,24 @@
 
 'use client';
 
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { User } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { LogOut } from 'lucide-react';
-import { signOutFromApp } from '@/app/actions';
-import { useToast } from '@/hooks/use-toast';
 
 interface MobileHeaderProps {
     user: User | null;
     setIsAuthDialogOpen: (isOpen: boolean) => void;
+    onSignOut: () => void;
 }
 
 export function MobileHeader({ 
     user,
     setIsAuthDialogOpen,
+    onSignOut,
 }: MobileHeaderProps) {
-    const { toast } = useToast();
-
-    const handleSignOut = async () => {
-        try {
-            await signOutFromApp();
-            toast({
-                description: "You have been signed out.",
-            });
-        } catch (error) {
-            console.error("Sign out error", error);
-            toast({
-                variant: "destructive",
-                title: "Sign Out Failed",
-                description: "An error occurred while signing out.",
-            });
-        }
-    };
     
     const UserProfileButton = () => {
         if (!user) return <Button variant="ghost" size="icon" />;
@@ -60,7 +42,7 @@ export function MobileHeader({
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                     <DropdownMenuItem onClick={handleSignOut}>
+                     <DropdownMenuItem onClick={onSignOut}>
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Log out</span>
                     </DropdownMenuItem>

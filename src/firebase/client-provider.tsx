@@ -1,29 +1,30 @@
+
 'use client';
 
 import React, { useMemo, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
-import { FirebaseApp } from 'firebase/app';
-import { Auth } from 'firebase/auth';
-import { Firestore } from 'firebase/firestore';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  // useMemo will only run this on the client, after the component has mounted.
+  // useMemo ensures this expensive initialization only runs once on the client,
+  // after the component has mounted. The 'use client' directive guarantees
+  // this component and its hooks only run in the browser.
   const firebaseServices = useMemo(() => {
+    // This check is a safeguard, but useMemo in a client component
+    // effectively ensures this only runs in the browser.
     if (typeof window !== 'undefined') {
       return initializeFirebase();
     }
     return null;
   }, []);
 
-  // Render children with the provider, but only if services are available.
-  // This prevents server-side rendering of components that depend on Firebase.
+  // If Firebase services are not yet available (e.g., during the initial server render),
+  // we render null. The actual content will render on the client once Firebase is initialized.
   if (!firebaseServices) {
-    // You can render a loader here, or just null
     return null;
   }
 

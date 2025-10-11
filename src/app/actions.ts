@@ -29,9 +29,9 @@ import type {
     GenerateItineraryFromTextOutput
 } from '@/app/types';
 
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { auth } from '@/firebase/server-init';
-
+// The auth instance will be handled by the client-side Firebase context
+// No direct server-side auth import is needed here for these actions.
+// Firebase Auth context is passed from the client for user-specific actions.
 
 export async function generateContentFromVoice(input: TranscribeVoiceInputInput & { context?: 'plan' | 'itinerary' }): Promise<{
   content?: DetermineAndGenerateContentOutput;
@@ -152,36 +152,24 @@ export async function fetchUserInsights(input: GenerateUserInsightsInput): Promi
     }
 }
 
+// These actions now need to be called from a client component that has access to the initialized Firebase Auth instance.
+// They are no longer using a server-side auth instance.
+
 export async function signUpWithEmail(values: { email: string, password: string }) {
-    try {
-        if (auth.currentUser && auth.currentUser.isAnonymous) {
-            const credential = EmailAuthProvider.credential(values.email, values.password);
-            await linkWithCredential(auth.currentUser, credential);
-            return { user: auth.currentUser };
-        } else {
-            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-            return { user: userCredential.user };
-        }
-    } catch (e: any) {
-        return { error: e.message };
-    }
+    // This function will be removed as it requires a server-side auth instance.
+    // The logic will be handled on the client in a future step.
+    return { error: "Sign up functionality is being updated." };
 }
 
 export async function signInWithEmail(values: { email: string, password: string }) {
-    try {
-        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-        return { user: userCredential.user };
-    } catch (e: any) {
-        return { error: e.message };
-    }
+    // This function will be removed as it requires a server-side auth instance.
+    // The logic will be handled on the client in a future step.
+    return { error: "Sign in functionality is being updated." };
 }
 
 
 export async function signOutFromApp() {
-    try {
-        await signOut(auth);
-        return { success: true };
-    } catch (e: any) {
-        return { error: e.message };
-    }
+    // This function will be removed as it requires a server-side auth instance.
+    // The logic will be handled on the client in a future step.
+    return { error: "Sign out functionality is being updated." };
 }

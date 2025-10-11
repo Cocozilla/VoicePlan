@@ -14,10 +14,8 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Switch } from '../ui/switch';
-import { signOutFromApp } from '@/app/actions';
-import { getAuth, User } from 'firebase/auth';
+import { User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { AuthDialog } from './auth-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
@@ -44,6 +42,7 @@ interface AppSidebarProps {
     onNotificationToggle: () => void;
     isInstallable: boolean;
     onInstall: () => void;
+    onSignOut: () => void;
 }
 
 export function AppSidebar({
@@ -68,26 +67,10 @@ export function AppSidebar({
     onNotificationToggle,
     isInstallable,
     onInstall,
+    onSignOut
 }: AppSidebarProps) {
     const isMobile = useIsMobile();
     const showYouTab = planHistory.length > 0 || itineraryHistory.length > 0;
-    const { toast } = useToast();
-
-    const handleSignOut = async () => {
-        try {
-            await signOutFromApp();
-            toast({
-                description: "You have been signed out.",
-            });
-        } catch (error) {
-            console.error("Sign out error", error);
-            toast({
-                variant: "destructive",
-                title: "Sign Out Failed",
-                description: "An error occurred while signing out.",
-            });
-        }
-    };
     
     const UserProfileButton = () => {
         if (!user) return null;
@@ -121,7 +104,7 @@ export function AppSidebar({
                         </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut}>
+                    <DropdownMenuItem onClick={onSignOut}>
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Log out</span>
                     </DropdownMenuItem>
@@ -132,7 +115,6 @@ export function AppSidebar({
 
     return (
         <>
-            <AuthDialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen} />
             <SidebarHeader>
                  <div className="flex items-center justify-between p-2">
                     <div className="font-semibold text-lg">VoicePlan</div>
