@@ -25,6 +25,8 @@ import type {
     ConfettiTrigger
 } from './types';
 
+export const dynamic = 'force-dynamic';
+
 function HomePageContent() {
   // State for UI and content
   const [status, setStatus] = useState<Status>('idle');
