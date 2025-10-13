@@ -5,20 +5,13 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
-  # The following environment variables are available by default:
-  # https://firebase.google.com/docs/app-hosting/runs-on-cloud-run#environment-variables
-  #
-  # You can also add your own secrets and environment variables here.
-  # https://firebase.google.com/docs/app-hosting/configure-backend#environment-variables
-  #
-  # secrets:
-  #  - secret: GEMINI_API_KEY
-  #
-  # env:
-  #  - variable: FIREBASE_REGION
-  #    value: us-central1
+
 secrets:
   - secret: GEMINI_API_KEY
+
 env:
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
+  - variable: NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG
+    availability: [BUILD, RUNTIME]
+    value: '{"apiKey":"AIzaSyCvZmCXnU6C98ztdhHPqqH0QRfndqEQGXI","authDomain":"voiceplan-h14be.firebaseapp.com","projectId":"voiceplan-h14be","storageBucket":"voiceplan-h14be.appspot.com","messagingSenderId":"433704363107","appId":"1:433704363107:web:07a60c5803b4c816a78456"}'
