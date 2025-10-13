@@ -1,4 +1,12 @@
 {
+  "hosting": {
+    "source": ".",
+    "frameworksBackend": {
+      "env": {
+        "NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG": "{\"apiKey\":\"AIzaSyCvZmCXnU6C98ztdhHPqqH0QRfndqEQGXI\",\"authDomain\":\"voiceplan-h14be.firebaseapp.com\",\"projectId\":\"voiceplan-h14be\",\"storageBucket\":\"voiceplan-h14be.appspot.com\",\"messagingSenderId\":\"433704363107\",\"appId\":\"1:433704363107:web:07a60c5803b4c816a78456\"}"
+      }
+    }
+  },
   "firestore": {
     "database": "plannerai",
     "location": "nam5",
