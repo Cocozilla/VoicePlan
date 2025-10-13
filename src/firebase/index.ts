@@ -31,6 +31,7 @@ export function initializeFirebase(): {
   auth: Auth;
   firestore: Firestore;
 } {
+  // Force a new build by adding a comment.
   const firebaseConfig = getFirebaseConfig();
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   return {
