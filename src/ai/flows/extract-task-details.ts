@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -31,7 +32,7 @@ export const extractTaskDetailsFlow = ai.defineFlow(
     - **category**: What category does it belong to (e.g., "Work", "Personal")?
     - **deadline**: If a time or day is mentioned, extract it precisely.
     - **priority**: Determine if the task is High, Medium, or Low priority.
-    - **emoji**: Assign a single, relevant Unicode emoji that visually represents the task.
+    - **emoji**: Assign a single, relevant Unicode emoji that visually represents the task. If the text contains an emoji shorthand code (like ":briefcase:" or ":tada:"), convert it to the corresponding Unicode character.
 
     Your output must be a single JSON object that strictly follows the output schema.`;
 
