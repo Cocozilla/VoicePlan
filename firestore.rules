@@ -1,236 +1,69 @@
-/**
- * @file Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model for the VoicePlan application.
- *
- * Data Structure:
- * All data is nested under /users/{userId}, ensuring that each user's data is isolated.
- * - /users/{userId}: Stores user profile information.
- * - /users/{userId}/plans/{planId}: Stores plans created by the user.
- * - /users/{userId}/plans/{planId}/tasks/{taskId}: Stores tasks associated with a specific plan.
- * - /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId}: Stores reminders for tasks.
- * - /users/{userId}/plans/{planId}/people/{personId}: Stores people associated with a plan.
- * - /users/{userId}/plans/{planId}/organizations/{organizationId}: Stores organizations associated with a plan.
- * - /users/{userId}/plans/{planId}/locations/{locationId}: Stores locations associated with a plan.
- *
- * Key Security Decisions:
- * - User data is only accessible by the authenticated user.
- * - Listing of all users is disallowed.
- * - All writes are validated against user ownership.
- * - All data is private to the user; there are no public collections.
- *
- * Denormalization for Authorization:
- * The 'plans' collection includes the 'userId' field within each document to allow security rules
- * to validate ownership without additional 'get()' calls. All plans, tasks, people, organizations, and locations store the relevant parent ID (e.g. planId, taskId) to ensure authorization independence.
- *
- * Structural Segregation:
- * User-specific data is segregated under the /users/{userId} path, allowing for secure list operations
- * and preventing unauthorized access.
- */
 rules_version = '2';
 service cloud.firestore {
+  // --- Helpers ---
+  function isAuthed() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return isAuthed() && request.auth.uid == userId;
+  }
+
+  // Require userId field to exist and match path userId on create/update
+  function hasValidUserId(userId) {
+    return request.resource.data.userId is string
+           && request.resource.data.userId == userId;
+  }
+
+  // Prevent changing owner on update
+  function isMaintainingOwnership() {
+    return resource.data.userId == request.resource.data.userId;
+  }
+
+  // Optional: restrict allowed keys to reduce attack surface
+  // Pass an array of allowed keys per collection if you want stricter control.
+  function hasOnlyAllowedKeys(allowedKeys) {
+    return request.resource.data.keys().hasOnly(allowedKeys);
+  }
+
   match /databases/{database}/documents {
 
-    /**
-     * @description Enforces access control for user profiles. Only the authenticated user can read or write their own profile.
-     * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their profile.
-     * @allow (get) User with ID 'user123' can read their own profile.
-     * @allow (update) User with ID 'user123' can update their own profile.
-     * @allow (delete) User with ID 'user123' can delete their own profile.
-     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
-     * @deny (get) User with ID 'user456' cannot read the profile of 'user123'.
-     * @deny (update) User with ID 'user456' cannot update the profile of 'user123'.
-     * @deny (delete) User with ID 'user456' cannot delete the profile of 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
+    // --- /users collection ---
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
+      // Allow read of own doc, but disallow collection listing
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+
+      // Create/update/delete only by owner; enforce userId correctness and immutability
+      allow create: if isOwner(userId) && hasValidUserId(userId);
+      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
+      allow delete: if isOwner(userId);
     }
 
-    /**
-     * @description Enforces access control for user plans. Only the authenticated user can read or write their own plans.
-     * @path /users/{userId}/plans/{planId}
-     * @allow (create) User 'user123' can create a plan under their user ID.
-     * @allow (get) User 'user123' can read a plan under their user ID.
-     * @allow (update) User 'user123' can update a plan under their user ID.
-     * @allow (delete) User 'user123' can delete a plan under their user ID.
-     * @deny (create) User 'user456' cannot create a plan under user ID 'user123'.
-     * @deny (get) User 'user456' cannot read a plan under user ID 'user123'.
-     * @deny (update) User 'user456' cannot update a plan under user ID 'user123'.
-     * @deny (delete) User 'user456' cannot delete a plan under user ID 'user123'.
-     * @principle Enforces document ownership for all operations. Validates relational integrity on create.
-     */
+    // --- /users/{userId}/plans ---
     match /users/{userId}/plans/{planId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if request.auth.uid == userId;
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
+      allow get, delete: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidUserId(userId);
+      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
     }
 
-    /**
-     * @description Enforces access control for tasks within a plan. Only the authenticated user (owner of the plan) can read or write tasks.
-     * @path /users/{userId}/plans/{planId}/tasks/{taskId}
-     * @allow (create) User 'user123' can create a task within their plan.
-     * @allow (get) User 'user123' can read a task within their plan.
-     * @allow (update) User 'user123' can update a task within their plan.
-     * @allow (delete) User 'user123' can delete a task within their plan.
-     * @deny (create) User 'user456' cannot create a task within plan of 'user123'.
-     * @deny (get) User 'user456' cannot read a task within plan of 'user123'.
-     * @deny (update) User 'user456' cannot update a task within plan of 'user123'.
-     * @deny (delete) User 'user456' cannot delete a task within plan of 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/plans/{planId}/tasks/{taskId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if request.auth.uid == userId;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+    // --- /users/{userId}/itineraries ---
+    // This block specifically handles the itineraries subcollection
+    match /users/{userId}/itineraries/{itineraryId} {
+      allow get, list: if isOwner(userId); // Allows owner to read single itinerary or list their own
+      allow create: if isOwner(userId) && hasValidUserId(userId); // Allows owner to create new itineraries
+      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId); // Allows owner to update their itineraries
+      allow delete: if isOwner(userId); // Allows owner to delete their itineraries
     }
 
-    /**
-     * @description Enforces access control for reminders within a task. Only the authenticated user (owner of the task) can read or write reminders.
-     * @path /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId}
-     * @allow (create) User 'user123' can create a reminder within their task.
-     * @allow (get) User 'user123' can read a reminder within their task.
-     * @allow (update) User 'user123' can update a reminder within their task.
-     * @allow (delete) User 'user123' can delete a reminder within their task.
-     * @deny (create) User 'user456' cannot create a reminder within task of 'user123'.
-     * @deny (get) User 'user456' cannot read a reminder within task of 'user123'.
-     * @deny (update) User 'user456' cannot update a reminder within task of 'user123'.
-     * @deny (delete) User 'user456' cannot delete a reminder within task of 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if request.auth.uid == userId;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces access control for people mentioned in a plan. Only the authenticated user (owner of the plan) can read or write people.
-     * @path /users/{userId}/plans/{planId}/people/{personId}
-     * @allow (create) User 'user123' can create a person within their plan.
-     * @allow (get) User 'user123' can read a person within their plan.
-     * @allow (update) User 'user123' can update a person within their plan.
-     * @allow (delete) User 'user123' can delete a person within their plan.
-     * @deny (create) User 'user456' cannot create a person within plan of 'user123'.
-     * @deny (get) User 'user456' cannot read a person within plan of 'user123'.
-     * @deny (update) User 'user456' cannot update a person within plan of 'user123'.
-     * @deny (delete) User 'user456' cannot delete a person within plan of 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/plans/{planId}/people/{personId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if request.auth.uid == userId;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces access control for organizations mentioned in a plan. Only the authenticated user (owner of the plan) can read or write organizations.
-     * @path /users/{userId}/plans/{planId}/organizations/{organizationId}
-     * @allow (create) User 'user123' can create an organization within their plan.
-     * @allow (get) User 'user123' can read an organization within their plan.
-     * @allow (update) User 'user123' can update an organization within their plan.
-     * @allow (delete) User 'user123' can delete an organization within their plan.
-     * @deny (create) User 'user456' cannot create an organization within plan of 'user123'.
-     * @deny (get) User 'user456' cannot read an organization within plan of 'user123'.
-     * @deny (update) User 'user456' cannot update an organization within plan of 'user123'.
-     * @deny (delete) User 'user456' cannot delete an organization within plan of 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/plans/{planId}/organizations/{organizationId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if request.auth.uid == userId;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces access control for locations mentioned in a plan. Only the authenticated user (owner of the plan) can read or write locations.
-     * @path /users/{userId}/plans/{planId}/locations/{locationId}
-     * @allow (create) User 'user123' can create a location within their plan.
-     * @allow (get) User 'user123' can read a location within their plan.
-     * @allow (update) User 'user123' can update a location within their plan.
-     * @allow (delete) User 'user123' can delete a location within their plan.
-     * @deny (create) User 'user456' cannot create a location within plan of 'user123'.
-     * @deny (get) User 'user456' cannot read a location within plan of 'user123'.
-     * @deny (update) User 'user456' cannot update a location within plan of 'user123'.
-     * @deny (delete) User 'user456' cannot delete a location within plan of 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/plans/{planId}/locations/{locationId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if request.auth.uid == userId;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+    // --- All descendants under a plan (true recursive wildcard) ---
+    // Covers: tasks, reminders, people, organizations, locations, nested things, etc.
+    match /users/{userId}/plans/{planId}/{document=**} {
+      // Enforce ownership AND userId presence/match on writes
+      allow get, list: if isOwner(userId); // list here still only returns caller-owned docs
+      allow create: if isOwner(userId) && hasValidUserId(userId);
+      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
+      allow delete: if isOwner(userId);
     }
   }
 }

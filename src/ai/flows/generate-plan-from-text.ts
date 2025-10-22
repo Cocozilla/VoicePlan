@@ -10,7 +10,6 @@ import { ai, geminiPro } from '@/ai/genkit';
 import { z } from 'zod';
 import { GeneratePlanFromTextInputSchema, GeneratePlanFromTextOutputSchema } from '@/ai/schemas';
 import type { GeneratePlanFromTextInput, GeneratePlanFromTextOutput as PlanOutput } from '@/ai/schemas';
-import { extractTaskDetailsFlow } from './extract-task-details';
 
 export async function generatePlanFromText(
   input: GeneratePlanFromTextInput
@@ -18,32 +17,50 @@ export async function generatePlanFromText(
   return generatePlanFromTextFlow(input);
 }
 
+
+// Internal schema for the prompt, which includes the stringified plan.
+const InternalPromptInputSchema = GeneratePlanFromTextInputSchema.extend({
+    jsonStringifiedPlan: z.string().optional().describe("The JSON string representation of the existing plan."),
+});
+
 // This prompt is now ONLY used for creating a brand new plan from scratch.
 const generatePlanFromTextPrompt = ai.definePrompt({
   name: 'generatePlanFromTextPrompt',
-  input: { schema: z.object({ transcribedText: z.string() }) },
+  input: { schema: InternalPromptInputSchema },
   output: { schema: GeneratePlanFromTextOutputSchema },
   model: geminiPro,
-  prompt: `You are a highly intelligent personal assistant. Your primary job is to analyze transcribed text to create a structured plan. You must handle three scenarios:
+  prompt: `You are a highly intelligent personal assistant. Your primary job is to create or update a structured plan based on transcribed user input.
 
-1.  **Simple To-Do List**: If the user provides a list of tasks without mentioning a schedule or time (e.g., "I need to buy milk, eggs, and bread"), create a plan with those tasks. Do NOT assign any times to the 'deadline' field.
+**Instructions for Creating or Updating a Plan:**
 
-2.  **Constrained Scheduling**: If the user provides tasks AND a specific time window (e.g., "Schedule my workout and a team meeting between 2 pm and 5 pm"), identify the tasks and logically distribute them within that time frame, assigning a specific time to each task's 'deadline' field (e.g., "2:00 PM", "4:00 PM").
+1.  **Analyze the Request**: Carefully read the user's transcribed text.
+2.  **Identify Intent**:
+    *   If no existing plan is provided, create a new plan from scratch.
+    *   If an existing plan is provided, you MUST update it based on the new text. This can involve adding, modifying, or removing tasks and subtasks. Do not simply add new tasks; intelligently merge the changes.
 
-3.  **Proactive Scheduling**: If the user asks you to create a schedule without providing a time window (e.g., "I need to go to the gym, do work, study, and read, give those times and make a plan for me"), you MUST propose a logical schedule. Make common-sense assumptions about task duration and order, and assign a reasonable, suggested time to each task's 'deadline' field.
+3.  **Structure the Output**:
+    *   Give the plan a concise and relevant 'title' and a one-sentence 'summary'.
+    *   Group tasks into logical 'categories' (e.g., "Work", "Personal").
+    *   For each task, provide a unique 'id', a 'task' description, an 'emoji', 'status' ('To Do', 'In Progress', 'Done'), and 'priority' ('High', 'Medium', 'Low').
+    *   If a deadline is mentioned, add a 'deadline' (e.g., "2:00 PM").
+    *   If smaller steps are mentioned, create them as 'subtasks' with a unique 'id' and a 'completed' status of 'false'.
+    *   If a reminder is mentioned, extract the 'time' and formulate a 'question' for the notification.
 
-**General Instructions for all scenarios:**
-- Your final output must be a single JSON object that strictly follows the output schema.
-- Identify all main tasks. If a task has smaller, actionable steps, create them as subtasks.
-- For each new task and subtask, you MUST assign a unique ID.
-- Set the 'completed' status of all new subtasks to 'false'.
-- All newly created tasks should have their status set to 'To Do'.
-- Group tasks into logical categories (e.g., "Work", "Personal").
-- Determine each task's priority (High, Medium, or Low).
-- Assign a single, relevant Unicode emoji that visually represents each task.
-- If a reminder is mentioned, extract the time and formulate a simple question for the notification.
+**Specific Scenarios:**
 
-Transcribed Text: {{{transcribedText}}}
+*   **Simple To-Do List**: For a list like "I need to buy milk, eggs, and bread," create tasks without deadlines.
+*   **Constrained Scheduling**: For "Schedule my workout and a team meeting between 2 pm and 5 pm," logically distribute the tasks within that timeframe, assigning specific deadlines.
+*   **Proactive Scheduling**: For "I need to go to the gym, do work, and study, make a plan for me," propose a logical schedule with suggested times.
+
+**IMPORTANT**: Your final output MUST be a single, complete JSON object that strictly follows the output schema.
+
+{{#if existingPlan}}
+**Existing Plan to Update**:
+{{{jsonStringifiedPlan}}}
+{{/if}}
+
+**User's Transcribed Text**:
+{{{transcribedText}}}
   `,
 });
 
@@ -54,59 +71,32 @@ const generatePlanFromTextFlow = ai.defineFlow(
     outputSchema: GeneratePlanFromTextOutputSchema,
   },
   async input => {
-    // If there is an existing plan, we use a robust, code-based approach to update it.
-    if (input.existingPlan) {
-      // 1. Use our specialized flow to extract details for only the NEW task.
-      const taskDetails = await extractTaskDetailsFlow({ transcribedText: input.transcribedText });
-
-      // 2. Create the new task object with a unique ID and default status.
-      const newTask = {
-        id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        ...taskDetails,
-        status: 'To Do' as const,
-        subtasks: [],
-      };
-
-      // 3. Safely add the new task to the plan using code, not a prompt.
-      const updatedPlan: PlanOutput = { ...input.existingPlan };
-      const categoryIndex = updatedPlan.categories.findIndex(c => c.category === taskDetails.category);
-
-      if (categoryIndex > -1) {
-        // If category exists, add the task to it.
-        updatedPlan.categories[categoryIndex].tasks.push(newTask);
-      } else {
-        // If category does not exist, create it with the new task.
-        updatedPlan.categories.push({
-          category: taskDetails.category,
-          tasks: [newTask],
-        });
-      }
-      
-      return updatedPlan;
-    } 
-    // If there is no existing plan, we use the original prompt-based method to create one from scratch.
-    else {
-        const { output } = await generatePlanFromTextPrompt({ transcribedText: input.transcribedText });
-        
-        if (!output) {
-          throw new Error("Plan generation failed: The model did not return any output.");
-        }
-
-        // Ensure all tasks and subtasks get IDs.
-        output.categories?.forEach(category => {
-          category.tasks.forEach(task => {
-            if (!task.id) {
-              task.id = `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-            }
-            task.subtasks?.forEach(subtask => {
-              if (!subtask.id) {
-                subtask.id = `subtask-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-              }
-            });
-          });
-        });
-
-        return output;
+    
+    const internalInput: z.infer<typeof InternalPromptInputSchema> = {
+        ...input,
+        jsonStringifiedPlan: input.existingPlan ? JSON.stringify(input.existingPlan, null, 2) : undefined,
+    };
+    
+    const { output } = await generatePlanFromTextPrompt(internalInput);
+    
+    if (!output) {
+      throw new Error("Plan generation failed: The model did not return any output.");
     }
+
+    // Defensive coding: Ensure all tasks and subtasks get IDs, in case the model forgets.
+    output.categories?.forEach(category => {
+      category.tasks.forEach(task => {
+        if (!task.id) {
+          task.id = `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        }
+        task.subtasks?.forEach(subtask => {
+          if (!subtask.id) {
+            subtask.id = `subtask-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+          }
+        });
+      });
+    });
+
+    return output;
   }
 );
