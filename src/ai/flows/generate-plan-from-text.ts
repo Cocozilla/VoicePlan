@@ -30,27 +30,26 @@ const generatePlanFromTextPrompt = ai.definePrompt({
   input: { schema: InternalPromptInputSchema },
   output: { schema: GeneratePlanFromTextOutputSchema },
   model: geminiPro,
-  prompt: `You are a highly intelligent personal assistant. Your primary job is to create or update a structured plan based on transcribed user input.
+  prompt: `You are a highly intelligent personal assistant. Your primary job is to analyze transcribed text to create or update a structured plan. You must handle three scenarios:
 
-**Instructions for Creating or Updating a Plan:**
+1.  **Simple To-Do List**: If the user provides a list of tasks without mentioning a schedule or time (e.g., "I need to buy milk, eggs, and bread"), create a plan with those tasks. Do NOT assign any times to the 'deadline' field.
 
-1.  **Analyze the Request**: Carefully read the user's transcribed text.
-2.  **Identify Intent**:
-    *   If no existing plan is provided, create a new plan from scratch, identifying all the tasks mentioned.
-    *   If an existing plan is provided, you MUST update it based on the new text. This can involve adding new tasks, modifying the text of existing tasks, or removing tasks. Do not simply add new tasks; intelligently merge the changes.
+2.  **Constrained Scheduling**: If the user provides tasks AND a specific time window (e.g., "Schedule my workout and a team meeting between 2 pm and 5 pm"), identify the tasks and logically distribute them within that time frame, assigning a specific time to each task's 'deadline' field (e.g., "2:00 PM", "4:00 PM").
 
-**IMPORTANT**:
-- When creating a plan, just create the tasks with their descriptions. Do NOT add emojis, priorities, deadlines, etc. Another process will handle that.
-- When updating a plan, preserve the original IDs of existing tasks. For new tasks, assign a new, unique temporary ID.
-- Your final output MUST be a single, complete JSON object of the plan that strictly follows the output schema.
+3.  **Proactive Scheduling**: If the user asks you to create a schedule without providing a time window (e.g., "I need to go to the gym, do work, study, and read, give those times and make a plan for me"), you MUST propose a logical schedule. Make common-sense assumptions about task duration and order, and assign a reasonable, suggested time to each task's 'deadline' field.
 
-{{#if existingPlan}}
-**Existing Plan to Update**:
-{{{jsonStringifiedPlan}}}
-{{/if}}
+**General Instructions for all scenarios:**
+- Your final output must be a single JSON object that strictly follows the output schema.
+- Identify all main tasks. If a task has smaller, actionable steps, create them as subtasks.
+- For each new task and subtask, you MUST assign a unique ID.
+- Set the 'completed' status of all new subtasks to 'false'.
+- All newly created tasks should have their status set to 'To Do'.
+- Group tasks into logical categories (e.g., "Work", "Personal").
+- Determine each task's priority (High, Medium, or Low).
+- Assign a single, relevant Unicode emoji that visually represents each task.
+- If a reminder is mentioned, extract the time and formulate a simple question for the notification.
 
-**User's Transcribed Text**:
-{{{transcribedText}}}
+Transcribed Text: {{{transcribedText}}}
   `,
 });
 
