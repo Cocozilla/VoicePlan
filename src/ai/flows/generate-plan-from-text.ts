@@ -38,7 +38,7 @@ const generatePlanFromTextPrompt = ai.definePrompt({
     *   If no existing plan is provided, create a new plan from scratch.
     *   If an existing plan is provided, you MUST update it based on the new text. This can involve adding, modifying, or removing tasks and subtasks. Do not simply add new tasks; intelligently merge the changes.
 
-3.  **Structure the Output**:
+3. **Task Structuring**: For each task you create or modify, you MUST populate the following fields:
     *   Give the plan a concise and relevant 'title' and a one-sentence 'summary'.
     *   Group tasks into logical 'categories' (e.g., "Work", "Personal").
     *   For each task, provide a unique 'id', a 'task' description, an 'emoji', 'status' ('To Do', 'In Progress', 'Done'), and 'priority' ('High', 'Medium', 'Low').
