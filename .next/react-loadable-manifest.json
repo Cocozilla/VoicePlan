@@ -1,0 +1,14 @@
+{
+  "app/page.tsx -> ./HomePageContent": {
+    "id": "app/page.tsx -> ./HomePageContent",
+    "files": [
+      "static/chunks/_app-pages-browser_src_app_HomePageContent_tsx.js"
+    ]
+  },
+  "components/app/app-content.tsx -> ./you-view": {
+    "id": "components/app/app-content.tsx -> ./you-view",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_app_you-view_tsx.js"
+    ]
+  }
+}

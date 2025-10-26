@@ -31,7 +31,7 @@ export default function SharePage() {
                 }
                 try {
                     // This path reads from the public collection, which is populated by the save functions.
-                    const collectionName = type === 'plan' ? 'plans' : 'itineraries';
+                    const collectionName = type === 'plan' ? 'shared_plans' : 'shared_itineraries';
                     const docRef = doc(firestore, collectionName, id);
                     const docSnap = await getDoc(docRef);
 
@@ -121,3 +121,5 @@ export default function SharePage() {
         </main>
     );
 }
+
+    

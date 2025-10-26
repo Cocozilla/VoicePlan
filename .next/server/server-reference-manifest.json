@@ -1,0 +1,70 @@
+{
+  "node": {
+    "39c39d1cd6e9ebce3eaa9cdfd4225b729a3d0bcc": {
+      "workers": {
+        "app/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fstudio%2Fsrc%2Fapp%2Factions.ts%22%2C%5B%22updatePlanFromVoice%22%2C%22addSubtasksFromVoice%22%2C%22signInWithEmail%22%2C%22generateContentFromVoice%22%2C%22updateItineraryFromVoice%22%2C%22signUpWithEmail%22%2C%22fetchUserInsights%22%2C%22signOutFromApp%22%5D%5D%5D&encryptionKey=BC%2BtfcrBH6CECxZLMQMw1VBiybBhxVekhvGy4s9ezac%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/page": "action-browser"
+      }
+    },
+    "59297e07b64f32213f39bb6d5dd37c6227f5e4cf": {
+      "workers": {
+        "app/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fstudio%2Fsrc%2Fapp%2Factions.ts%22%2C%5B%22updatePlanFromVoice%22%2C%22addSubtasksFromVoice%22%2C%22signInWithEmail%22%2C%22generateContentFromVoice%22%2C%22updateItineraryFromVoice%22%2C%22signUpWithEmail%22%2C%22fetchUserInsights%22%2C%22signOutFromApp%22%5D%5D%5D&encryptionKey=BC%2BtfcrBH6CECxZLMQMw1VBiybBhxVekhvGy4s9ezac%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/page": "action-browser"
+      }
+    },
+    "7ec49405721580d816056cb81e70ee44d5cb5b83": {
+      "workers": {
+        "app/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fstudio%2Fsrc%2Fapp%2Factions.ts%22%2C%5B%22updatePlanFromVoice%22%2C%22addSubtasksFromVoice%22%2C%22signInWithEmail%22%2C%22generateContentFromVoice%22%2C%22updateItineraryFromVoice%22%2C%22signUpWithEmail%22%2C%22fetchUserInsights%22%2C%22signOutFromApp%22%5D%5D%5D&encryptionKey=BC%2BtfcrBH6CECxZLMQMw1VBiybBhxVekhvGy4s9ezac%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/page": "action-browser"
+      }
+    },
+    "860f53c00ebc3b92d42ae1e3bad24e55bb833b89": {
+      "workers": {
+        "app/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fstudio%2Fsrc%2Fapp%2Factions.ts%22%2C%5B%22updatePlanFromVoice%22%2C%22addSubtasksFromVoice%22%2C%22signInWithEmail%22%2C%22generateContentFromVoice%22%2C%22updateItineraryFromVoice%22%2C%22signUpWithEmail%22%2C%22fetchUserInsights%22%2C%22signOutFromApp%22%5D%5D%5D&encryptionKey=BC%2BtfcrBH6CECxZLMQMw1VBiybBhxVekhvGy4s9ezac%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/page": "action-browser"
+      }
+    },
+    "8e15fdff03178de8c20c0fbfbc35675cfbe8e608": {
+      "workers": {
+        "app/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fstudio%2Fsrc%2Fapp%2Factions.ts%22%2C%5B%22updatePlanFromVoice%22%2C%22addSubtasksFromVoice%22%2C%22signInWithEmail%22%2C%22generateContentFromVoice%22%2C%22updateItineraryFromVoice%22%2C%22signUpWithEmail%22%2C%22fetchUserInsights%22%2C%22signOutFromApp%22%5D%5D%5D&encryptionKey=BC%2BtfcrBH6CECxZLMQMw1VBiybBhxVekhvGy4s9ezac%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/page": "action-browser"
+      }
+    },
+    "9cc40e340fd5f5a3bb11f22e24abdaa331d060d1": {
+      "workers": {
+        "app/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fstudio%2Fsrc%2Fapp%2Factions.ts%22%2C%5B%22updatePlanFromVoice%22%2C%22addSubtasksFromVoice%22%2C%22signInWithEmail%22%2C%22generateContentFromVoice%22%2C%22updateItineraryFromVoice%22%2C%22signUpWithEmail%22%2C%22fetchUserInsights%22%2C%22signOutFromApp%22%5D%5D%5D&encryptionKey=BC%2BtfcrBH6CECxZLMQMw1VBiybBhxVekhvGy4s9ezac%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/page": "action-browser"
+      }
+    },
+    "e92a0df34bd595ce381a01608ceb5770fa92679e": {
+      "workers": {
+        "app/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fstudio%2Fsrc%2Fapp%2Factions.ts%22%2C%5B%22updatePlanFromVoice%22%2C%22addSubtasksFromVoice%22%2C%22signInWithEmail%22%2C%22generateContentFromVoice%22%2C%22updateItineraryFromVoice%22%2C%22signUpWithEmail%22%2C%22fetchUserInsights%22%2C%22signOutFromApp%22%5D%5D%5D&encryptionKey=BC%2BtfcrBH6CECxZLMQMw1VBiybBhxVekhvGy4s9ezac%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/page": "action-browser"
+      }
+    },
+    "f0d083c62ccc8262a5b458f990b2757cca9bcd59": {
+      "workers": {
+        "app/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fstudio%2Fsrc%2Fapp%2Factions.ts%22%2C%5B%22updatePlanFromVoice%22%2C%22addSubtasksFromVoice%22%2C%22signInWithEmail%22%2C%22generateContentFromVoice%22%2C%22updateItineraryFromVoice%22%2C%22signUpWithEmail%22%2C%22fetchUserInsights%22%2C%22signOutFromApp%22%5D%5D%5D&encryptionKey=BC%2BtfcrBH6CECxZLMQMw1VBiybBhxVekhvGy4s9ezac%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/page": "action-browser"
+      }
+    }
+  },
+  "edge": {},
+  "encryptionKey": "BC+tfcrBH6CECxZLMQMw1VBiybBhxVekhvGy4s9ezac="
+}

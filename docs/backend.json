@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Plan": {
@@ -383,8 +384,42 @@
             }
           ]
         }
+      },
+       {
+        "path": "/shared_plans/{planId}",
+        "definition": {
+          "entityName": "Plan",
+          "schema": {
+            "$ref": "#/backend/entities/Plan"
+          },
+          "description": "Publicly readable collection for shared plans. Documents are write-once and immutable.",
+          "params": [
+            {
+              "name": "planId",
+              "description": "The unique identifier for the plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared_itineraries/{itineraryId}",
+        "definition": {
+          "entityName": "Plan",
+          "schema": {
+            "$ref": "#/backend/entities/Plan"
+          },
+          "description": "Publicly readable collection for shared itineraries. Documents are write-once and immutable.",
+          "params": [
+            {
+              "name": "itineraryId",
+              "description": "The unique identifier for the itinerary."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, in accordance with the stated principles.  Authorization Independence is achieved by storing the `userId` directly within the `plans` collection, eliminating the need for `get()` calls in security rules. Furthermore, storing `planId` within the `tasks`, `people`, `organizations`, and `locations` collections associated with a plan also facilitates Authorization Independence. Path-based ownership (`/users/{userId}/plans/{planId}`) is used for `plans` to ensure simple, robust security rules. All documents within the same collection share identical security requirements to ensure a Homogeneous Security Posture.  The structure supports secure list operations via structural segregation; each user's data is segregated under their respective `/users/{userId}` path."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, in accordance with the stated principles.  Authorization Independence is achieved by storing the `userId` directly within the `plans` collection, eliminating the need for `get()` calls in security rules. Furthermore, storing `planId` within the `tasks`, `people`, `organizations`, and `locations` collections associated with a plan also facilitates Authorization Independence. Path-based ownership (`/users/{userId}/plans/{planId}`) is used for `plans` to ensure simple, robust security rules. All documents within the same collection share identical security requirements to ensure a Homogeneous Security Posture.  The structure supports secure list operations via structural segregation; each user's data is segregated under their respective `/users/{userId}` path. Public collections `shared_plans` and `shared_itineraries` are added for sharing functionality, with rules allowing public read access."
   }
 }
+
+    

@@ -241,6 +241,7 @@ export default function HomePageContent() {
 
     if (!firestore || !user) return;
     
+    // Save to private user collection
     const userPlanRef = doc(firestore, `users/${user.uid}/plans`, plan.id);
     setDoc(userPlanRef, plan, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
@@ -249,6 +250,13 @@ export default function HomePageContent() {
         requestResourceData: plan,
       });
       errorEmitter.emit('permission-error', permissionError);
+    });
+
+    // Save to public shared collection
+    const sharedPlanRef = doc(firestore, `shared_plans`, plan.id);
+    setDoc(sharedPlanRef, plan, { merge: true }).catch(async (serverError) => {
+        // This error is less critical to the user, so we can log it.
+        console.error("Could not save to shared collection", serverError);
     });
   }
   
@@ -266,6 +274,7 @@ export default function HomePageContent() {
 
     if (!firestore || !user) return;
 
+    // Save to private user collection
     const userItineraryRef = doc(firestore, `users/${user.uid}/itineraries`, itinerary.id);
     setDoc(userItineraryRef, itinerary, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
@@ -274,6 +283,13 @@ export default function HomePageContent() {
         requestResourceData: itinerary,
       });
       errorEmitter.emit('permission-error', permissionError);
+    });
+
+    // Save to public shared collection
+    const sharedItineraryRef = doc(firestore, `shared_itineraries`, itinerary.id);
+    setDoc(sharedItineraryRef, itinerary, { merge: true }).catch(async (serverError) => {
+        // This error is less critical to the user, so we can log it.
+        console.error("Could not save to shared collection", serverError);
     });
   }
 
@@ -556,3 +572,5 @@ export default function HomePageContent() {
     />
   );
 }
+
+    
