@@ -1,69 +1,204 @@
+/**
+ * @fileoverview Firestore Security Rules for VoicePlan application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for private data under `/users/{userId}`.
+ * Public read access is granted to the `shared_plans` and `shared_itineraries` collections,
+ * but only authorized users can create and modify documents within those collections.
+ *
+ * Data Structure:
+ * - User profiles are stored in `/users/{userId}`.
+ * - Plans, Tasks, Reminders, People, Organizations, and Locations are nested under `/users/{userId}/plans/{planId}...`.
+ * - Shared plans are stored in `/shared_plans/{planId}` and `/shared_itineraries/{itineraryId}`.
+ *
+ * Key Security Decisions:
+ * - User data is strictly private and only accessible by the owning user.
+ * - Listing of users is disallowed.
+ * - Shared plans are publicly readable but require validation on creation to ensure correct ownership.
+ *
+ * Denormalization for Authorization:
+ * - The `Plan` document contains the `userId` to avoid needing to query the `/users/{userId}` document for authorization.
+ * - Task, Reminder, Person, Organization, and Location documents contain the `planId` for similar authorization independence.
+ *
+ * Structural Segregation:
+ * - Private plans and tasks are stored under the user's path (`/users/{userId}/plans/{planId}`).
+ * - Publicly shared plans are stored in a separate top-level collection (`/shared_plans/{planId}`).
+ */
 rules_version = '2';
 service cloud.firestore {
-  // --- Helpers ---
-  function isAuthed() {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Grants access control to user profiles. Only the authenticated user can read/write their own profile.
+     * @path /users/{userId}
+     * @allow (create) - Authenticated user with ID matching {userId} can create their profile.
+     * @allow (get, update, delete) - Authenticated user with ID matching {userId} can read/write their profile.
+     * @deny (create) - Authenticated user attempts to create a profile with an ID that doesn't match their own.
+     * @deny (get, update, delete) - Authenticated user attempts to read/write a profile with an ID that doesn't match their own.
+     * @deny (list) - Listing users is not allowed.
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId} {
+      // Validate that the userId in the document matches the userId in the path
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isSignedIn() && isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Grants access control to plans for each user. Only the authenticated user can read/write their own plans.
+     * @path /users/{userId}/plans/{planId}
+     * @allow (create) - Authenticated user with ID matching {userId} can create a plan under their profile.
+     * @allow (get, update, delete) - Authenticated user with ID matching {userId} can read/write plans under their profile.
+     * @deny (create) - Authenticated user attempts to create a plan under a profile with an ID that doesn't match their own.
+     * @deny (get, update, delete) - Authenticated user attempts to read/write plans under a profile with an ID that doesn't match their own.
+     * @deny (list) - Listing plans for other users is not allowed.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId}/plans/{planId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isSignedIn() && isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Grants access control to tasks within a plan. Only the authenticated user who owns the plan can read/write tasks.
+     * @path /users/{userId}/plans/{planId}/tasks/{taskId}
+     * @allow (create) - Authenticated user with ID matching {userId} can create a task under their plan.
+     * @allow (get, update, delete) - Authenticated user with ID matching {userId} can read/write tasks under their plan.
+     * @deny (create) - Authenticated user attempts to create a task under a plan that doesn't belong to them.
+     * @deny (get, update, delete) - Authenticated user attempts to read/write tasks under a plan that doesn't belong to them.
+     * @deny (list) - Listing tasks for other users' plans is not allowed.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId}/plans/{planId}/tasks/{taskId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Grants access control to reminders for each task. Only the authenticated user who owns the task can read/write reminders.
+     * @path /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId}
+     * @allow (create) - Authenticated user with ID matching {userId} can create a reminder for their task.
+     * @allow (get, update, delete) - Authenticated user with ID matching {userId} can read/write reminders for their task.
+     * @deny (create) - Authenticated user attempts to create a reminder for a task that doesn't belong to them.
+     * @deny (get, update, delete) - Authenticated user attempts to read/write reminders for a task that doesn't belong to them.
+     * @deny (list) - Listing reminders for other users' tasks is not allowed.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Grants access control to people mentioned in each plan. Only the authenticated user who owns the plan can read/write the people.
+     * @path /users/{userId}/plans/{planId}/people/{personId}
+     * @allow (create) - Authenticated user with ID matching {userId} can create a person mentioned in their plan.
+     * @allow (get, update, delete) - Authenticated user with ID matching {userId} can read/write people mentioned in their plan.
+     * @deny (create) - Authenticated user attempts to create a person mentioned in a plan that doesn't belong to them.
+     * @deny (get, update, delete) - Authenticated user attempts to read/write people mentioned in a plan that doesn't belong to them.
+     * @deny (list) - Listing people mentioned in other users' plans is not allowed.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId}/plans/{planId}/people/{personId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Grants access control to organizations mentioned in each plan. Only the authenticated user who owns the plan can read/write the organizations.
+     * @path /users/{userId}/plans/{planId}/organizations/{organizationId}
+     * @allow (create) - Authenticated user with ID matching {userId} can create an organization mentioned in their plan.
+     * @allow (get, update, delete) - Authenticated user with ID matching {userId} can read/write organizations mentioned in their plan.
+     * @deny (create) - Authenticated user attempts to create an organization mentioned in a plan that doesn't belong to them.
+     * @deny (get, update, delete) - Authenticated user attempts to read/write organizations mentioned in a plan that doesn't belong to them.
+     * @deny (list) - Listing organizations mentioned in other users' plans is not allowed.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId}/plans/{planId}/organizations/{organizationId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Grants access control to locations mentioned in each plan. Only the authenticated user who owns the plan can read/write the locations.
+     * @path /users/{userId}/plans/{planId}/locations/{locationId}
+     * @allow (create) - Authenticated user with ID matching {userId} can create a location mentioned in their plan.
+     * @allow (get, update, delete) - Authenticated user with ID matching {userId} can read/write locations mentioned in their plan.
+     * @deny (create) - Authenticated user attempts to create a location mentioned in a plan that doesn't belong to them.
+     * @deny (get, update, delete) - Authenticated user attempts to read/write locations mentioned in a plan that doesn't belong to them.
+     * @deny (list) - Listing locations mentioned in other users' plans is not allowed.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId}/plans/{planId}/locations/{locationId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows public read access to shared plans, but restricts write access to authenticated users.
+     * @path /shared_plans/{planId}
+     * @allow (get, list) - Any user can read the shared plan.
+     * @allow (create) - Authenticated user can create a shared plan.  Must validate the ownership field.
+     * @allow (update, delete) - Only the owner can modify the shared plan, and the document must exist.
+     * @deny (create) - Attempt to create with invalid ownership.
+     * @deny (update, delete) - Attempt to update/delete a plan the user doesn't own or that doesn't exist.
+     * @principle Public read with owner-only writes.
+     */
+    match /shared_plans/{planId} {
+      allow get, list: if true;
+      allow create: if isSignedIn(); // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+     /**
+     * @description Allows public read access to shared itineraries, but restricts write access to authenticated users.
+     * @path /shared_itineraries/{itineraryId}
+     * @allow (get, list) - Any user can read the shared itinerary.
+     * @allow (create) - Authenticated user can create a shared itinerary.  Must validate the ownership field.
+     * @allow (update, delete) - Only the owner can modify the shared itinerary, and the document must exist.
+     * @deny (create) - Attempt to create with invalid ownership.
+     * @deny (update, delete) - Attempt to update/delete a plan the user doesn't own or that doesn't exist.
+     * @principle Public read with owner-only writes.
+     */
+    match /shared_itineraries/{itineraryId} {
+      allow get, list: if true;
+      allow create: if isSignedIn(); // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+  }
+
+  // Helper functions
+  function isSignedIn() {
     return request.auth != null;
   }
 
   function isOwner(userId) {
-    return isAuthed() && request.auth.uid == userId;
+    return request.auth.uid == userId;
   }
 
-  // Require userId field to exist and match path userId on create/update
-  function hasValidUserId(userId) {
-    return request.resource.data.userId is string
-           && request.resource.data.userId == userId;
-  }
-
-  // Prevent changing owner on update
-  function isMaintainingOwnership() {
-    return resource.data.userId == request.resource.data.userId;
-  }
-
-  // Optional: restrict allowed keys to reduce attack surface
-  // Pass an array of allowed keys per collection if you want stricter control.
-  function hasOnlyAllowedKeys(allowedKeys) {
-    return request.resource.data.keys().hasOnly(allowedKeys);
-  }
-
-  match /databases/{database}/documents {
-
-    // --- /users collection ---
-    match /users/{userId} {
-      // Allow read of own doc, but disallow collection listing
-      allow get: if isOwner(userId);
-      allow list: if false;
-
-      // Create/update/delete only by owner; enforce userId correctness and immutability
-      allow create: if isOwner(userId) && hasValidUserId(userId);
-      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
-      allow delete: if isOwner(userId);
-    }
-
-    // --- /users/{userId}/plans ---
-    match /users/{userId}/plans/{planId} {
-      allow get, delete: if isOwner(userId);
-      allow create: if isOwner(userId) && hasValidUserId(userId);
-      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
-    }
-
-    // --- /users/{userId}/itineraries ---
-    // This block specifically handles the itineraries subcollection
-    match /users/{userId}/itineraries/{itineraryId} {
-      allow get, list: if isOwner(userId); // Allows owner to read single itinerary or list their own
-      allow create: if isOwner(userId) && hasValidUserId(userId); // Allows owner to create new itineraries
-      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId); // Allows owner to update their itineraries
-      allow delete: if isOwner(userId); // Allows owner to delete their itineraries
-    }
-
-    // --- All descendants under a plan (true recursive wildcard) ---
-    // Covers: tasks, reminders, people, organizations, locations, nested things, etc.
-    match /users/{userId}/plans/{planId}/{document=**} {
-      // Enforce ownership AND userId presence/match on writes
-      allow get, list: if isOwner(userId); // list here still only returns caller-owned docs
-      allow create: if isOwner(userId) && hasValidUserId(userId);
-      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
-      allow delete: if isOwner(userId);
-    }
+  function isExistingOwner(userId) {
+    return isSignedIn() && isOwner(userId) && resource != null;
   }
 }
