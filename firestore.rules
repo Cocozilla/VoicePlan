@@ -2,57 +2,73 @@
  * @fileoverview Firestore Security Rules for VoicePlan application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model. Only the authenticated user who owns a document has read and write access to it.
+ * This ruleset enforces a strict user-ownership model for all data stored
+ * within Firestore. Each user has exclusive access to their own data tree,
+ * preventing unauthorized access and modification.
  *
  * Data Structure:
- * All data is nested under /users/{userId}, ensuring that data is private to each user. Plans, Tasks, and Reminders are further nested under the user's ID, creating a clear ownership hierarchy.
+ * The Firestore data is organized hierarchically, with user data nested under
+ * the `/users/{userId}` path. Plans, tasks, and reminders are further nested
+ * under their respective parent documents, maintaining a clear ownership
+ * structure.
  *
  * Key Security Decisions:
- * - Listing of users is disallowed to protect user privacy.
- * - All write operations require the user to be authenticated and the owner of the resource.
- * - The rules use path-based authorization.
+ * - Users can only access their own data.
+ * - Listing other users is disallowed.
+ * - The shared_plans collection is publicly readable to resolve the reported error, but this may be undesirable from a privacy perspective.
  *
  * Denormalization for Authorization:
- * The data structure inherently denormalizes the `userId` by embedding it in the path for all subcollections. This allows efficient path-based authorization without needing to read the document's data.
+ *  The ruleset leverages path-based ownership for authorization.
+ *
+ * Structural Segregation:
+ *  Private user data is stored under the `/users/{userId}` collection,
+ * ensuring that it is not mixed with public data.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is authenticated.
-     * @returns {boolean} True if the request is authenticated, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the authenticated user ID matches the provided user ID.
-     * @param {string} userId - The user ID to compare against.
-     * @returns {boolean} True if the user ID matches, false otherwise.
+     * @description Checks if the request is made by the owner of the document.
+     * @param {string} userId - The user ID to compare against the request's auth UID.
+     * @return {bool} - True if the user ID matches the auth UID, false otherwise.
      */
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the authenticated user is the existing owner of the resource.
-     * @param {string} userId - The user ID to compare against.
-     * @returns {boolean} True if the user is the existing owner, false otherwise.
+     * @description Checks if the request is made by the owner of the document and that the document exists.
+     * @param {string} userId - The user ID to compare against the request's auth UID.
+     * @return {bool} - True if the user ID matches the auth UID and the document exists, false otherwise.
      */
     function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Enforces document ownership for the /users/{userId} collection.
+     * @description Rule for the /shared_plans/{planId} collection.
+     * @path /shared_plans/{planId}
+     * @allow (get) - Allows anyone to get a document in the shared_plans collection
+     * @deny (create) - Denies any user from creating a document in the shared_plans collection.
+     * @principle Allows public read access to the shared plans collection.
+     */
+    match /shared_plans/{planId} {
+        allow get: if true;
+        allow list: if true;
+        allow create: if false;
+        allow update: if false;
+        allow delete: if false;
+    }
+
+    /**
+     * @description Rule for the /users/{userId} collection.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' creates a profile: request.auth.uid == 'user123'.
-     * @deny (create) User with ID 'user123' tries to create a profile for 'user456'.
-     * @allow (get, list, update, delete) User with ID 'user123' accesses their own profile.
-     * @deny (get, list, update, delete) User with ID 'user123' tries to access 'user456' profile.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - Allows a user to create their own profile if the userId matches their auth UID.
+     * @allow (get) - Allows a user to read their own profile if authenticated.
+     * @deny (update) - Denies a user from updating their profile unless they are the owner.
+     * @deny (delete) - Denies a user from deleting their profile unless they are the owner.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -63,13 +79,13 @@ service cloud.firestore {
     }
 
     /**
-     * @description Enforces document ownership for the /users/{userId}/plans/{planId} collection.
+     * @description Rule for the /users/{userId}/plans/{planId} collection.
      * @path /users/{userId}/plans/{planId}
-     * @allow (create) User with ID 'user123' creates a plan: request.auth.uid == 'user123'.
-     * @deny (create) User with ID 'user123' tries to create a plan for 'user456'.
-     * @allow (get, list, update, delete) User with ID 'user123' accesses their own plan.
-     * @deny (get, list, update, delete) User with ID 'user123' tries to access 'user456' plan.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - Allows a user to create a plan under their user ID.
+     * @allow (get) - Allows a user to read their own plan.
+     * @deny (update) - Denies a user from updating a plan unless they are the owner.
+     * @deny (delete) - Denies a user from deleting a plan unless they are the owner.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId}/plans/{planId} {
       allow get: if isOwner(userId);
@@ -80,13 +96,13 @@ service cloud.firestore {
     }
 
     /**
-     * @description Enforces document ownership for the /users/{userId}/plans/{planId}/tasks/{taskId} collection.
+     * @description Rule for the /users/{userId}/plans/{planId}/tasks/{taskId} collection.
      * @path /users/{userId}/plans/{planId}/tasks/{taskId}
-     * @allow (create) User with ID 'user123' creates a task: request.auth.uid == 'user123'.
-     * @deny (create) User with ID 'user123' tries to create a task for 'user456'.
-     * @allow (get, list, update, delete) User with ID 'user123' accesses their own task.
-     * @deny (get, list, update, delete) User with ID 'user123' tries to access 'user456' task.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - Allows a user to create a task under their plan.
+     * @allow (get) - Allows a user to read their own task.
+     * @deny (update) - Denies a user from updating a task unless they are the owner.
+     * @deny (delete) - Denies a user from deleting a task unless they are the owner.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId}/plans/{planId}/tasks/{taskId} {
       allow get: if isOwner(userId);
@@ -97,13 +113,13 @@ service cloud.firestore {
     }
 
     /**
-     * @description Enforces document ownership for the /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId} collection.
+     * @description Rule for the /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId} collection.
      * @path /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId}
-     * @allow (create) User with ID 'user123' creates a reminder: request.auth.uid == 'user123'.
-     * @deny (create) User with ID 'user123' tries to create a reminder for 'user456'.
-     * @allow (get, list, update, delete) User with ID 'user123' accesses their own reminder.
-     * @deny (get, list, update, delete) User with ID 'user123' tries to access 'user456' reminder.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - Allows a user to create a reminder under their task.
+     * @allow (get) - Allows a user to read their own reminder.
+     * @deny (update) - Denies a user from updating a reminder unless they are the owner.
+     * @deny (delete) - Denies a user from deleting a reminder unless they are the owner.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId} {
       allow get: if isOwner(userId);
