@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
-import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirebase, errorEmitter, FirestorePermissionError, FirebaseClientProvider } from '@/firebase';
 import { PlanView } from '@/components/app/plan-view';
 import { ItineraryView } from '@/components/app/itinerary-view';
 import { StoredPlan, StoredItinerary } from '@/app/types';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-export default function SharePage() {
+function SharePageContent() {
   const { firestore } = useFirebase();
   const params = useParams();
   const [content, setContent] = useState<StoredPlan | StoredItinerary | null>(null);
@@ -31,10 +31,7 @@ export default function SharePage() {
       return;
     }
 
-    // Handle old link format (userId_planId) and new format (planId)
-    // This makes sure old links don't break.
-    const idParts = idFromUrl.split('_');
-    const id = idParts.length > 1 ? idParts[1] : idParts[0];
+    const id = idFromUrl;
 
     const fetchContent = async () => {
       setLoading(true);
@@ -61,7 +58,7 @@ export default function SharePage() {
         errorEmitter.emit('permission-error', permissionError);
         
         // Also set a local error for the UI.
-        setError(permissionError.message);
+        setError('The requested content could not be found or you do not have permission to view it. The link may be expired or the content may have been deleted.');
         setLoading(false);
       });
     };
@@ -82,7 +79,7 @@ export default function SharePage() {
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Error Loading Content</AlertTitle>
-            <AlertDescription>The requested content could not be found or you do not have permission to view it. The link may be expired or the content may have been deleted.</AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         {content && (
@@ -97,4 +94,13 @@ export default function SharePage() {
       </div>
     </div>
   );
+}
+
+
+export default function SharePage() {
+    return (
+        <FirebaseClientProvider>
+            <SharePageContent />
+        </FirebaseClientProvider>
+    )
 }
