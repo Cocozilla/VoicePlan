@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
-import { useFirebase, errorEmitter, FirestorePermissionError, FirebaseClientProvider } from '@/firebase';
+import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { PlanView } from '@/components/app/plan-view';
 import { ItineraryView } from '@/components/app/itinerary-view';
 import { StoredPlan, StoredItinerary } from '@/app/types';
@@ -98,9 +98,5 @@ function SharePageContent() {
 
 
 export default function SharePage() {
-    return (
-        <FirebaseClientProvider>
-            <SharePageContent />
-        </FirebaseClientProvider>
-    )
+    return <SharePageContent />;
 }
