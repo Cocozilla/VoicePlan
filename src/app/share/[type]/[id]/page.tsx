@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
-import { useFirebase } from '@/firebase';
+import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { PlanView } from '@/components/app/plan-view';
 import { ItineraryView } from '@/components/app/itinerary-view';
 import { StoredPlan, StoredItinerary } from '@/app/types';
@@ -36,27 +36,34 @@ export default function SharePage() {
     const idParts = idFromUrl.split('_');
     const id = idParts.length > 1 ? idParts[1] : idParts[0];
 
-
     const fetchContent = async () => {
       setLoading(true);
-      try {
-        // Fetch from the correct public collection based on the app's architecture
-        const collectionName = type === 'plan' ? 'shared_plans' : 'shared_itineraries';
-        const docRef = doc(firestore, collectionName, id);
-        const docSnap = await getDoc(docRef);
+      
+      const collectionName = type === 'plan' ? 'shared_plans' : 'shared_itineraries';
+      const docRef = doc(firestore, collectionName, id);
 
+      getDoc(docRef).then(docSnap => {
         if (docSnap.exists()) {
           const data = docSnap.data() as StoredItinerary | StoredPlan;
           setContent({ ...data, id: docSnap.id });
         } else {
           setError('Shared content not found. The link may have expired or been removed.');
         }
-      } catch (e: any) {
-        console.error('Error fetching shared content:', e);
-        setError(e.message || 'Failed to fetch content.');
-      } finally {
         setLoading(false);
-      }
+      }).catch(serverError => {
+        // Create the rich, contextual error.
+        const permissionError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'get',
+        });
+        
+        // Emit the error to be caught by the global listener.
+        errorEmitter.emit('permission-error', permissionError);
+        
+        // Also set a local error for the UI.
+        setError(permissionError.message);
+        setLoading(false);
+      });
     };
 
     fetchContent();
@@ -71,14 +78,14 @@ export default function SharePage() {
             <p className="mt-4 text-lg">Loading shared content...</p>
           </div>
         )}
-        {error && (
+        {error && !loading && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Error Loading Content</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>The requested content could not be found or you do not have permission to view it. The link may be expired or the content may have been deleted.</AlertDescription>
           </Alert>
         )}
-        {content && params && (
+        {content && (
           <div className="w-full">
             {(Array.isArray(params.type) ? params.type[0] : params.type) === 'plan' ? (
               <PlanView plan={content as StoredPlan} />
@@ -91,5 +98,3 @@ export default function SharePage() {
     </div>
   );
 }
-
-    
