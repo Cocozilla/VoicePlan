@@ -4,7 +4,6 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AppProviders } from './providers';
-import { ClientOnly } from '@/components/ui/client-only';
 
 
 const APP_NAME = "VoicePlan";
@@ -41,12 +40,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <head />
       <body className="font-body antialiased">
-        <ClientOnly>
-          <AppProviders>
-            {children}
-            <Toaster />
-          </AppProviders>
-        </ClientOnly>
+        <AppProviders>
+          {children}
+          <Toaster />
+        </AppProviders>
       </body>
     </html>
   );
