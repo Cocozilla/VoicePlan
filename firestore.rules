@@ -1,227 +1,63 @@
-/**
- * @fileoverview Firestore Security Rules for VoicePlan application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for private data nested under `/users/{userId}`.
- * Public data in `shared_plans` and `shared_itineraries` collections is readable by all, but writable only with valid ownership.
- *
- * Data Structure:
- * - User profiles are stored in `/users/{userId}`.
- * - Plans are stored in `/users/{userId}/plans/{planId}`.
- * - Tasks are stored in `/users/{userId}/plans/{planId}/tasks/{taskId}`.
- * - Reminders are stored in `/users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId}`.
- * - People are stored in `/users/{userId}/plans/{planId}/people/{personId}`.
- * - Organizations are stored in `/users/{userId}/plans/{planId}/organizations/{organizationId}`.
- * - Locations are stored in `/users/{userId}/plans/{planId}/locations/{locationId}`.
- * - Shared plans are stored in `/shared_plans/{planId}`.
- * - Shared itineraries are stored in `/shared_itineraries/{itineraryId}`.
- *
- * Key Security Decisions:
- * - User documents and their subcollections are only accessible by the authenticated user.
- * - Public read access is granted to the `shared_plans` and `shared_itineraries` collections.
- * - Write access to `shared_plans` and `shared_itineraries` requires a valid `userId` in the document.
- * - Data validation is limited to authorization-critical fields to enable rapid prototyping.
- *
- * Denormalization for Authorization:
- * - The `plans` collection includes a `userId` field for authorization independence.
- * - The `tasks`, `people`, `organizations`, and `locations` collections include a `planId` field for authorization independence.
- */
+
 rules_version = '2';
+
 service cloud.firestore {
+  // --- Helper Functions ---
+  function isAuthed() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return isAuthed() && request.auth.uid == userId;
+  }
+
+  function hasValidUserId(userId) {
+    return request.resource.data.userId is string && request.resource.data.userId == userId;
+  }
+
+  function isMaintainingOwnership() {
+    return resource.data.userId == request.resource.data.userId;
+  }
+
   match /databases/{database}/documents {
 
-    /**
-     * @description Grants access to user profiles.
-     * @path /users/{userId}
-     * @allow (create) - Authenticated user can create their own profile.
-     * @allow (get, list, update, delete) - Authenticated user can only access their own profile.
-     * @deny (create) - If the user ID in the request does not match the authenticated user ID.
-     * @deny (get, list, update, delete) - If the user ID in the path does not match the authenticated user ID.
-     * @principle Enforces document ownership for all operations.
-     */
+    // --- User Profile (Private) ---
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false; // Listing users is not permitted.
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow get, update, delete: if isOwner(userId);
+      allow create: if isAuthed();
+      allow list: if false;
     }
 
-    /**
-     * @description Grants access to plans for a specific user.
-     * @path /users/{userId}/plans/{planId}
-     * @allow (create) - Authenticated user can create plans under their user ID.
-     * @allow (get, list, update, delete) - Authenticated user can only access plans under their user ID.
-     * @deny (create) - If the user ID in the path does not match the authenticated user ID.
-     * @deny (get, list, update, delete) - If the user ID in the path does not match the authenticated user ID.
-     * @principle Enforces document ownership for all operations.
-     */
+    // --- Plans Subcollection (Private) ---
     match /users/{userId}/plans/{planId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if request.auth.uid == userId;
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow get, list, delete: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidUserId(userId);
+      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
     }
 
-    /**
-     * @description Grants access to tasks within a plan for a specific user.
-     * @path /users/{userId}/plans/{planId}/tasks/{taskId}
-     * @allow (create) - Authenticated user can create tasks under their plans.
-     * @allow (get, list, update, delete) - Authenticated user can only access tasks under their plans.
-     * @deny (create) - If the user ID or plan ID in the path does not match the task's `planId` field.
-     * @deny (get, list, update, delete) - If the user ID or plan ID in the path does not match the task's `planId` field.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/plans/{planId}/tasks/{taskId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+    // --- Itineraries Subcollection (Private) ---
+    match /users/{userId}/itineraries/{itineraryId} {
+      allow get, list, delete: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidUserId(userId);
+      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
     }
 
-    /**
-     * @description Grants access to reminders within a task for a specific user.
-     * @path /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId}
-     * @allow (create) - Authenticated user can create reminders under their tasks.
-     * @allow (get, list, update, delete) - Authenticated user can only access reminders under their tasks.
-     * @deny (create) - If the user ID, plan ID, or task ID in the path does not match the reminder's `taskId` field.
-     * @deny (get, list, update, delete) - If the user ID, plan ID, or task ID in the path does not match the reminder's `taskId` field.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Grants access to people within a plan for a specific user.
-     * @path /users/{userId}/plans/{planId}/people/{personId}
-     * @allow (create) - Authenticated user can create people under their plans.
-     * @allow (get, list, update, delete) - Authenticated user can only access people under their plans.
-     * @deny (create) - If the user ID or plan ID in the path does not match the person's `planId` field.
-     * @deny (get, list, update, delete) - If the user ID or plan ID in the path does not match the person's `planId` field.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/plans/{planId}/people/{personId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Grants access to organizations within a plan for a specific user.
-     * @path /users/{userId}/plans/{planId}/organizations/{organizationId}
-     * @allow (create) - Authenticated user can create organizations under their plans.
-     * @allow (get, list, update, delete) - Authenticated user can only access organizations under their plans.
-     * @deny (create) - If the user ID or plan ID in the path does not match the organization's `planId` field.
-     * @deny (get, list, update, delete) - If the user ID or plan ID in the path does not match the organization's `planId` field.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/plans/{planId}/organizations/{organizationId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Grants access to locations within a plan for a specific user.
-     * @path /users/{userId}/plans/{planId}/locations/{locationId}
-     * @allow (create) - Authenticated user can create locations under their plans.
-     * @allow (get, list, update, delete) - Authenticated user can only access locations under their plans.
-     * @deny (create) - If the user ID or plan ID in the path does not match the location's `planId` field.
-     * @deny (get, list, update, delete) - If the user ID or plan ID in the path does not match the location's `planId` field.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/plans/{planId}/locations/{locationId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
-    }
-
-        /**
-     * @description Grants public read access to shared plans.  Owner can create. Owner can update/delete
-     * @path /shared_plans/{planId}
-     * @allow (get, list) - Any user can read and list shared plans.
-     * @allow (create) - Only the plan owner can create a shared plan.
-     * @allow (update, delete) - Only the plan owner can update or delete a shared plan.
-     * @deny (create) - If the plan is not owned by the authenticated user.
-     * @deny (update, delete) - If the plan is not owned by the authenticated user.
-     * @principle Allows public read access but enforces ownership for writes.
-     */
+    // --- Shared Plans (Public) ---
     match /shared_plans/{planId} {
-          function isOwner() {
-            return request.auth != null && request.auth.uid == resource.data.userId;
-          }
+      // Allow anyone to read the shared plan
+      allow get: if true;
 
-          allow get: if true;
-          allow list: if true;
-          allow create: if request.auth != null;
-          allow update: if isOwner();
-          allow delete: if isOwner();
+      // Only the original owner can create, update, or delete the shared copy
+      allow create, update, delete: if isOwner(request.resource.data.userId);
     }
-        /**
-     * @description Grants public read access to shared itineraries.  Owner can create. Owner can update/delete
-     * @path /shared_itineraries/{itineraryId}
-     * @allow (get, list) - Any user can read and list shared itineraries.
-     * @allow (create) - Only the itinerary owner can create a shared itinerary.
-     * @allow (update, delete) - Only the itinerary owner can update or delete a shared itinerary.
-     * @deny (create) - If the itinerary is not owned by the authenticated user.
-     * @deny (update, delete) - If the itinerary is not owned by the authenticated user.
-     * @principle Allows public read access but enforces ownership for writes.
-     */
-    match /shared_itineraries/{itineraryId} {
-          function isOwner() {
-            return request.auth != null && request.auth.uid == resource.data.userId;
-          }
 
-          allow get: if true;
-          allow list: if true;
-          allow create: if request.auth != null;
-          allow update: if isOwner();
-          allow delete: if isOwner();
+    // --- Shared Itineraries (Public) ---
+    match /shared_itineraries/{itineraryId} {
+      // Allow anyone to read the shared itinerary
+      allow get: if true;
+
+      // Only the original owner can create, update, or delete the shared copy
+      allow create, update, delete: if isOwner(request.resource.data.userId);
     }
   }
 }

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Plane, Edit, Link as LinkIcon, Plus } from 'lucide-react';
+import { Plane, Edit, Send, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -13,16 +13,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 
 interface ItineraryViewProps {
     itinerary: StoredItinerary;
-    // Editing props are now optional
     editingId?: string | null;
     editingTitle?: string;
     setEditingTitle?: (title: string) => void;
     handleEditTitle?: (content: StoredItinerary) => void;
     handleSaveTitle?: () => void;
     handleTitleKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-    // Control props are also optional for read-only scenarios
     resetToIdle?: () => void;
-    handleCopyLink?: () => void;
+    handleShare?: () => void;
 }
 
 export function ItineraryView({
@@ -34,11 +32,11 @@ export function ItineraryView({
     handleSaveTitle,
     handleTitleKeyDown,
     resetToIdle,
-    handleCopyLink,
+    handleShare,
 }: ItineraryViewProps) {
 
     const isEditable = handleEditTitle && handleSaveTitle && setEditingTitle && handleTitleKeyDown;
-    const showFooter = resetToIdle && handleCopyLink;
+    const showFooter = resetToIdle && handleShare;
 
     return (
         <Card className="w-full max-w-2xl shadow-xl animate-in fade-in zoom-in-95 border-0 md:border md:rounded-lg">
@@ -139,8 +137,8 @@ export function ItineraryView({
                         <Plus className="mr-2 h-4 w-4" />
                         New
                     </Button>
-                    <Button onClick={handleCopyLink}>
-                        <LinkIcon className="mr-2 h-4 w-4" />
+                    <Button onClick={handleShare}>
+                        <Send className="mr-2 h-4 w-4" />
                         Share
                     </Button>
                 </CardFooter>

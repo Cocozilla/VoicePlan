@@ -139,14 +139,47 @@ export function AppContent({
         }
     };
     
-  const handleCopyLink = () => {
-    if (!activeContent) return;
-    const link = `${window.location.origin}/share/${activeContent.type}/${activeContent.data.id}`;
-    navigator.clipboard.writeText(link);
-    toast({
+  const handleShare = async () => {
+    if (!activeContent || !user) return;
+
+    const { type, data } = activeContent;
+    const { id } = data;
+    const shareUrl = `${window.location.origin}/share/${type}/${id}`;
+    const shareTitle = `Check out this ${type}: ${data.title}`;
+    const shareText = `I made this ${type} with VoicePlan and wanted to share it with you.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        toast({
+          description: <div className="flex items-center gap-2"><Check className="h-4 w-4" /><span>Shared successfully!</span></div>,
+        });
+      } catch (error: any) {
+        // AbortError and NotAllowedError are common when the user cancels the share dialog.
+        // We can safely ignore these as it's expected user behavior.
+        if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
+            console.error('Error sharing:', error);
+            // Fallback to copying the link to the clipboard for other errors.
+            navigator.clipboard.writeText(shareUrl);
+            toast({
+                variant: 'destructive',
+                title: 'Error Sharing',
+                description: 'Could not share. The link has been copied to your clipboard instead.',
+            });
+        }
+      }
+    } else {
+      // Fallback for browsers that do not support the Web Share API.
+      navigator.clipboard.writeText(shareUrl);
+      toast({
         description: <div className="flex items-center gap-2"><LinkIcon className="h-4 w-4" /><span>Link copied to clipboard!</span></div>,
-    });
-  }
+      });
+    }
+  };
 
     if (!isAuthReady) {
         return (
@@ -217,7 +250,7 @@ export function AppContent({
                             handleSaveTitle={handleSaveTitle}
                             handleTitleKeyDown={handleTitleKeyDown}
                             resetToIdle={resetToIdle}
-                            handleCopyLink={handleCopyLink}
+                            handleShare={handleShare}
                             confettiTrigger={confettiTrigger}
                         />
                     )}
@@ -231,7 +264,7 @@ export function AppContent({
                             handleSaveTitle={handleSaveTitle}
                             handleTitleKeyDown={handleTitleKeyDown}
                             resetToIdle={resetToIdle}
-                            handleCopyLink={handleCopyLink}
+                            handleShare={handleShare}
                         />
                     )}
                      <div className="flex items-center gap-4 mt-8">

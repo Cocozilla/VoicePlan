@@ -1,7 +1,7 @@
 
 'use client';
 
-import { BrainCircuit, Edit, Calendar, User, Building, Bell, MoreVertical, Plus, Mic, Link as LinkIcon } from 'lucide-react';
+import { BrainCircuit, Edit, Calendar, User, Building, Bell, MoreVertical, Plus, Mic, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -21,18 +21,18 @@ type RecordingMode = 'newContent' | 'subtask' | 'updatePlan' | 'updateItinerary'
 
 interface PlanViewProps {
     plan: StoredPlan;
-    handleTaskStatusChange: (categoryIndex: number, taskIndex: number, newStatus: TaskStatus) => void;
-    handleSubTaskStatusChange: (categoryIndex: number, taskIndex: number, subTaskIndex: number, completed: boolean) => void;
-    handleStartRecording: (mode: RecordingMode, task?: Task) => void;
-    editingId: string | null;
-    editingTitle: string;
-    setEditingTitle: (title: string) => void;
-    handleEditTitle: (content: StoredPlan) => void;
-    handleSaveTitle: () => void;
-    handleTitleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-    resetToIdle: () => void;
-    handleCopyLink: () => void;
-    confettiTrigger: ConfettiTrigger;
+    handleTaskStatusChange?: (categoryIndex: number, taskIndex: number, newStatus: TaskStatus) => void;
+    handleSubTaskStatusChange?: (categoryIndex: number, taskIndex: number, subTaskIndex: number, completed: boolean) => void;
+    handleStartRecording?: (mode: RecordingMode, task?: Task) => void;
+    editingId?: string | null;
+    editingTitle?: string;
+    setEditingTitle?: (title: string) => void;
+    handleEditTitle?: (content: StoredPlan) => void;
+    handleSaveTitle?: () => void;
+    handleTitleKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    resetToIdle?: () => void;
+    handleShare?: () => void;
+    confettiTrigger?: ConfettiTrigger;
 }
 
 export function PlanView({
@@ -47,9 +47,13 @@ export function PlanView({
     handleSaveTitle,
     handleTitleKeyDown,
     resetToIdle,
-    handleCopyLink,
+    handleShare,
     confettiTrigger
 }: PlanViewProps) {
+    const isEditable = handleEditTitle && handleSaveTitle && setEditingTitle && handleTitleKeyDown;
+    const isInteractive = handleTaskStatusChange && handleSubTaskStatusChange && handleStartRecording;
+    const showFooter = resetToIdle && handleShare;
+
     const getPriorityBadgeVariant = (priority: 'High' | 'Medium' | 'Low' | undefined) => {
         switch (priority) {
             case 'High': return 'destructive';
@@ -73,7 +77,7 @@ export function PlanView({
                     <div className="flex-1 group">
                         <div className="flex items-center gap-2 text-xl md:text-2xl">
                             <BrainCircuit className="text-primary size-5 md:size-6" />
-                            {editingId === plan.id ? (
+                            {isEditable && editingId === plan.id ? (
                                 <Input
                                     type="text"
                                     value={editingTitle}
@@ -86,9 +90,11 @@ export function PlanView({
                             ) : (
                                 <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
                                     {plan.title}
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleEditTitle(plan)}>
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
+                                    {isEditable && (
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleEditTitle(plan)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                    )}
                                 </CardTitle>
                             )}
                         </div>
@@ -129,14 +135,15 @@ export function PlanView({
                                                             id={`task-${catIndex}-${taskIndex}`}
                                                             className='mt-1'
                                                             checked={task.status === 'Done'}
-                                                            onCheckedChange={(checked) => handleTaskStatusChange(catIndex, taskIndex, checked ? 'Done' : 'To Do')}
+                                                            onCheckedChange={(checked) => isInteractive && handleTaskStatusChange(catIndex, taskIndex, checked ? 'Done' : 'To Do')}
+                                                            disabled={!isInteractive}
                                                         />
                                                          {confettiTrigger?.id === task.id && <Confetti key={confettiTrigger.timestamp} />}
                                                     </div>
                                                     <div className='flex-1'>
                                                         <label
                                                             htmlFor={`task-${catIndex}-${taskIndex}`}
-                                                            className={cn("font-medium text-base flex items-start gap-3 cursor-pointer", task.status === 'Done' && 'line-through text-muted-foreground')}
+                                                            className={cn("font-medium text-base flex items-start gap-3", isInteractive ? 'cursor-pointer': 'cursor-default', task.status === 'Done' && 'line-through text-muted-foreground')}
                                                         >
                                                             {task.emoji && <span className="text-xl mt-[-2px]">{task.emoji}</span>}
                                                             <span>{task.task}</span>
@@ -161,34 +168,35 @@ export function PlanView({
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <div className="flex flex-col sm:flex-row gap-2 items-center ml-auto">
-                                                        <div className="hidden md:flex gap-2">
-                                                            {task.status && <Badge variant={getStatusBadgeVariant(task.status)}>{task.status}</Badge>}
-                                                            {task.priority && <Badge variant={getPriorityBadgeVariant(task.priority)}>{task.priority}</Badge>}
+                                                    {isInteractive && (
+                                                        <div className="flex flex-col sm:flex-row gap-2 items-center ml-auto">
+                                                            <div className="hidden md:flex gap-2">
+                                                                {task.status && <Badge variant={getStatusBadgeVariant(task.status)}>{task.status}</Badge>}
+                                                                {task.priority && <Badge variant={getPriorityBadgeVariant(task.priority)}>{task.priority}</Badge>}
+                                                            </div>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                        <MoreVertical className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem onClick={() => handleStartRecording('subtask', task)}>
+                                                                        <Plus className="mr-2 h-4 w-4" />
+                                                                        Add Subtasks
+                                                                    </DropdownMenuItem>
+                                                                    {task.subtasks && task.subtasks.length > 0 && (
+                                                                        <CollapsibleTrigger asChild>
+                                                                            <DropdownMenuItem>
+                                                                                <MoreVertical className="mr-2 h-4 w-4" />
+                                                                                View Subtasks
+                                                                            </DropdownMenuItem>
+                                                                        </CollapsibleTrigger>
+                                                                    )}
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
                                                         </div>
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                                    <MoreVertical className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem onClick={() => handleStartRecording('subtask', task)}>
-                                                                    <Plus className="mr-2 h-4 w-4" />
-                                                                    Add Subtasks
-                                                                </DropdownMenuItem>
-                                                                {task.subtasks && task.subtasks.length > 0 && (
-                                                                    <CollapsibleTrigger asChild>
-                                                                        <DropdownMenuItem>
-                                                                            <MoreVertical className="mr-2 h-4 w-4" />
-                                                                            View Subtasks
-                                                                        </DropdownMenuItem>
-                                                                    </CollapsibleTrigger>
-                                                                )}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-
-                                                    </div>
+                                                    )}
                                                 </div>
                                                 <CollapsibleContent className="mt-4 px-4 pb-4 md:pl-8">
                                                     <p className="text-sm font-semibold mb-2">Subtasks:</p>
@@ -199,13 +207,14 @@ export function PlanView({
                                                                     <Checkbox
                                                                         id={`subtask-${catIndex}-${taskIndex}-${subIndex}`}
                                                                         checked={sub.completed}
-                                                                        onCheckedChange={(checked) => handleSubTaskStatusChange(catIndex, taskIndex, subIndex, !!checked)}
+                                                                        onCheckedChange={(checked) => isInteractive && handleSubTaskStatusChange(catIndex, taskIndex, subIndex, !!checked)}
+                                                                        disabled={!isInteractive}
                                                                     />
                                                                     {confettiTrigger?.id === sub.id && <Confetti key={confettiTrigger.timestamp} />}
                                                                 </div>
                                                                 <label
                                                                     htmlFor={`subtask-${catIndex}-${taskIndex}-${subIndex}`}
-                                                                    className={cn("flex-1 text-sm cursor-pointer", sub.completed && 'line-through text-muted-foreground')}
+                                                                    className={cn("flex-1 text-sm", isInteractive ? 'cursor-pointer': 'cursor-default', sub.completed && 'line-through text-muted-foreground')}
                                                                 >
                                                                     {sub.text}
                                                                 </label>
@@ -223,16 +232,18 @@ export function PlanView({
                     ))}
                 </Accordion>
             </CardContent>
-            <CardFooter className="flex justify-center items-center gap-2 p-4 md:p-6">
-                <Button variant="outline" onClick={resetToIdle}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New
-                </Button>
-                <Button onClick={handleCopyLink}>
-                    <LinkIcon className="mr-2 h-4 w-4" />
-                    Share
-                </Button>
-            </CardFooter>
+           {showFooter && (
+                <CardFooter className="flex justify-center items-center gap-2 p-4 md:p-6">
+                    <Button variant="outline" onClick={resetToIdle}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        New
+                    </Button>
+                    <Button onClick={handleShare}>
+                        <Send className="mr-2 h-4 w-4" />
+                        Share
+                    </Button>
+                </CardFooter>
+            )}
         </Card>
     );
 }

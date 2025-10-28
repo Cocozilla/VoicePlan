@@ -1,125 +1,95 @@
 
-
 'use client';
-
-import { useEffect, useState } from 'react';
-import { doc, getDoc, getFirestore } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { doc, getDoc } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
 import { PlanView } from '@/components/app/plan-view';
 import { ItineraryView } from '@/components/app/itinerary-view';
-import { Skeleton } from '@/components/ui/skeleton';
+import { StoredPlan, StoredItinerary } from '@/app/types';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import { useParams } from 'next/navigation';
-import type { StoredPlan, StoredItinerary } from '@/app/types';
-
 
 export default function SharePage() {
-    const { type, id } = useParams<{ type: 'plan' | 'itinerary'; id: string }>();
-    const [content, setContent] = useState<StoredPlan | StoredItinerary | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const { firestore } = useFirebase();
+  const params = useParams();
+  const [content, setContent] = useState<StoredPlan | StoredItinerary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (id && type) {
-            const fetchContent = async () => {
-                const { firestore } = initializeFirebase();
-                if (!firestore) {
-                  setError('Firestore is not available.');
-                  setLoading(false);
-                  return;
-                }
-                try {
-                    // This path reads from the public collection, which is populated by the save functions.
-                    const collectionName = type === 'plan' ? 'shared_plans' : 'shared_itineraries';
-                    const docRef = doc(firestore, collectionName, id);
-                    const docSnap = await getDoc(docRef);
+  useEffect(() => {
+    if (!params || !firestore) {
+      return; // Wait for params and firestore to be available
+    }
 
-                    if (docSnap.exists()) {
-                        setContent(docSnap.data() as StoredPlan | StoredItinerary);
-                    } else {
-                        setError('The requested content could not be found. The link may be expired or the content may have been deleted.');
-                    }
-                } catch (e) {
-                    console.error("Error fetching document: ", e);
-                    setError('An error occurred while trying to load the content.');
-                } finally {
-                    setLoading(false);
-                }
-            };
+    let type = Array.isArray(params.type) ? params.type[0] : params.type;
+    let idFromUrl = Array.isArray(params.id) ? params.id[0] : params.id;
 
-            fetchContent();
+    if (!type || !idFromUrl) {
+      setLoading(false);
+      setError("Invalid share link: Missing type or ID.");
+      return;
+    }
+
+    // Handle old link format (userId_planId) and new format (planId)
+    // This makes sure old links don't break.
+    const idParts = idFromUrl.split('_');
+    const id = idParts.length > 1 ? idParts[1] : idParts[0];
+
+
+    const fetchContent = async () => {
+      setLoading(true);
+      try {
+        // Fetch from the correct public collection based on the app's architecture
+        const collectionName = type === 'plan' ? 'shared_plans' : 'shared_itineraries';
+        const docRef = doc(firestore, collectionName, id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data() as StoredItinerary | StoredPlan;
+          setContent({ ...data, id: docSnap.id });
+        } else {
+          setError('Shared content not found. The link may have expired or been removed.');
         }
-    }, [id, type]);
+      } catch (e: any) {
+        console.error('Error fetching shared content:', e);
+        setError(e.message || 'Failed to fetch content.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const ReadOnlyWrapper = ({ children }: { children: React.ReactNode }) => (
-        <div className="pointer-events-none">
-            {children}
-        </div>
-    );
-    
-    if (loading) {
-        return (
-             <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-                <div className="w-full max-w-2xl space-y-4">
-                    <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                            <Skeleton className="h-8 w-64" />
-                            <Skeleton className="h-4 w-80" />
-                        </div>
-                        <Skeleton className="h-6 w-24" />
-                    </div>
-                    <Skeleton className="h-40 w-full" />
-                    <Skeleton className="h-40 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                </div>
-            </div>
-        );
-    }
-    
-    if (error) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-background p-4">
-                 <Alert variant="destructive" className="max-w-md">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Content Not Found</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            </div>
-        );
-    }
-    
-    if (!content) {
-        return null;
-    }
+    fetchContent();
+  }, [params, firestore]);
 
-    return (
-        <main className="flex min-h-screen w-full flex-col items-center justify-start bg-muted/20 p-4 md:p-8 relative overflow-hidden">
-             <div 
-                className="absolute inset-0 z-0 opacity-30"
-                style={{
-                backgroundImage: 'radial-gradient(circle at 25% 25%, hsl(var(--primary)) 0%, transparent 35%), radial-gradient(circle at 75% 75%, hsl(var(--accent)) 0%, transparent 35%)',
-                }}
-            />
-            <div className="absolute pointer-events-none inset-0 flex items-center justify-center bg-background [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"></div>
-            
-            <div className="z-10 w-full max-w-2xl">
-                {type === 'plan' ? (
-                     <ReadOnlyWrapper>
-                        <PlanView plan={content as StoredPlan} handleTaskStatusChange={()=>{}} handleSubTaskStatusChange={()=>{}} handleStartRecording={()=>{}} editingId={null} editingTitle={""} setEditingTitle={()=>{}} handleEditTitle={()=>{}} handleSaveTitle={()=>{}} handleTitleKeyDown={()=>{}} resetToIdle={()=>{}} handleCopyLink={()=>{}} confettiTrigger={null} />
-                    </ReadOnlyWrapper>
-                ) : (
-                     <ReadOnlyWrapper>
-                        <ItineraryView itinerary={content as StoredItinerary} />
-                    </ReadOnlyWrapper>
-                )}
-            </div>
-
-            <footer className="z-10 mt-8 text-center text-muted-foreground text-sm">
-                <p>Shared via VoicePlan</p>
-            </footer>
-        </main>
-    );
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
+      <div className="w-full max-w-2xl">
+        {loading && (
+          <div className="flex flex-col items-center justify-center flex-1">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-lg">Loading shared content...</p>
+          </div>
+        )}
+        {error && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error Loading Content</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {content && params && (
+          <div className="w-full">
+            {(Array.isArray(params.type) ? params.type[0] : params.type) === 'plan' ? (
+              <PlanView plan={content as StoredPlan} />
+            ) : (
+              <ItineraryView itinerary={content as StoredItinerary} />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
     
