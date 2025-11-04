@@ -1,132 +1,69 @@
-/**
- * @fileoverview Firestore Security Rules for VoicePlan application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for all data stored
- * within Firestore. Each user has exclusive access to their own data tree,
- * preventing unauthorized access and modification.
- *
- * Data Structure:
- * The Firestore data is organized hierarchically, with user data nested under
- * the `/users/{userId}` path. Plans, tasks, and reminders are further nested
- * under their respective parent documents, maintaining a clear ownership
- * structure.
- *
- * Key Security Decisions:
- * - Users can only access their own data.
- * - Listing other users is disallowed.
- * - The shared_plans collection is publicly readable to resolve the reported error, but this may be undesirable from a privacy perspective.
- *
- * Denormalization for Authorization:
- *  The ruleset leverages path-based ownership for authorization.
- *
- * Structural Segregation:
- *  Private user data is stored under the `/users/{userId}` collection,
- * ensuring that it is not mixed with public data.
- */
 rules_version = '2';
 service cloud.firestore {
+  // --- Helpers ---
+  function isAuthed() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return isAuthed() && request.auth.uid == userId;
+  }
+
+  // Require userId field to exist and match path userId on create/update
+  function hasValidUserId(userId) {
+    return request.resource.data.userId is string
+           && request.resource.data.userId == userId;
+  }
+
+  // Prevent changing owner on update
+  function isMaintainingOwnership() {
+    return resource.data.userId == request.resource.data.userId;
+  }
+
+  // Optional: restrict allowed keys to reduce attack surface
+  // Pass an array of allowed keys per collection if you want stricter control.
+  function hasOnlyAllowedKeys(allowedKeys) {
+    return request.resource.data.keys().hasOnly(allowedKeys);
+  }
+
   match /databases/{database}/documents {
 
-    /**
-     * @description Checks if the request is made by the owner of the document.
-     * @param {string} userId - The user ID to compare against the request's auth UID.
-     * @return {bool} - True if the user ID matches the auth UID, false otherwise.
-     */
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the request is made by the owner of the document and that the document exists.
-     * @param {string} userId - The user ID to compare against the request's auth UID.
-     * @return {bool} - True if the user ID matches the auth UID and the document exists, false otherwise.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Rule for the /shared_plans/{planId} collection.
-     * @path /shared_plans/{planId}
-     * @allow (get) - Allows anyone to get a document in the shared_plans collection
-     * @deny (create) - Denies any user from creating a document in the shared_plans collection.
-     * @principle Allows public read access to the shared plans collection.
-     */
-    match /shared_plans/{planId} {
-        allow get: if true;
-        allow list: if true;
-        allow create: if false;
-        allow update: if false;
-        allow delete: if false;
-    }
-
-    /**
-     * @description Rule for the /users/{userId} collection.
-     * @path /users/{userId}
-     * @allow (create) - Allows a user to create their own profile if the userId matches their auth UID.
-     * @allow (get) - Allows a user to read their own profile if authenticated.
-     * @deny (update) - Denies a user from updating their profile unless they are the owner.
-     * @deny (delete) - Denies a user from deleting their profile unless they are the owner.
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
-     */
+    // --- /users collection ---
     match /users/{userId} {
+      // Allow read of own doc, but disallow collection listing
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+
+      // Create/update/delete only by owner; enforce userId correctness and immutability
+      allow create: if isOwner(userId) && hasValidUserId(userId);
+      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
+      allow delete: if isOwner(userId);
     }
 
-    /**
-     * @description Rule for the /users/{userId}/plans/{planId} collection.
-     * @path /users/{userId}/plans/{planId}
-     * @allow (create) - Allows a user to create a plan under their user ID.
-     * @allow (get) - Allows a user to read their own plan.
-     * @deny (update) - Denies a user from updating a plan unless they are the owner.
-     * @deny (delete) - Denies a user from deleting a plan unless they are the owner.
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
-     */
+    // --- /users/{userId}/plans ---
     match /users/{userId}/plans/{planId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow get, delete: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidUserId(userId);
+      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
     }
 
-    /**
-     * @description Rule for the /users/{userId}/plans/{planId}/tasks/{taskId} collection.
-     * @path /users/{userId}/plans/{planId}/tasks/{taskId}
-     * @allow (create) - Allows a user to create a task under their plan.
-     * @allow (get) - Allows a user to read their own task.
-     * @deny (update) - Denies a user from updating a task unless they are the owner.
-     * @deny (delete) - Denies a user from deleting a task unless they are the owner.
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
-     */
-    match /users/{userId}/plans/{planId}/tasks/{taskId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+    // --- /users/{userId}/itineraries ---
+    // This block specifically handles the itineraries subcollection
+    match /users/{userId}/itineraries/{itineraryId} {
+      allow get, list: if isOwner(userId); // Allows owner to read single itinerary or list their own
+      allow create: if isOwner(userId) && hasValidUserId(userId); // Allows owner to create new itineraries
+      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId); // Allows owner to update their itineraries
+      allow delete: if isOwner(userId); // Allows owner to delete their itineraries
     }
 
-    /**
-     * @description Rule for the /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId} collection.
-     * @path /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId}
-     * @allow (create) - Allows a user to create a reminder under their task.
-     * @allow (get) - Allows a user to read their own reminder.
-     * @deny (update) - Denies a user from updating a reminder unless they are the owner.
-     * @deny (delete) - Denies a user from deleting a reminder unless they are the owner.
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
-     */
-    match /users/{userId}/plans/{planId}/tasks/{taskId}/reminders/{reminderId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+    // --- All descendants under a plan (true recursive wildcard) ---
+    // Covers: tasks, reminders, people, organizations, locations, nested things, etc.
+    match /users/{userId}/plans/{planId}/{document=**} {
+      // Enforce ownership AND userId presence/match on writes
+      allow get, list: if isOwner(userId); // list here still only returns caller-owned docs
+      allow create: if isOwner(userId) && hasValidUserId(userId);
+      allow update: if isOwner(userId) && isMaintainingOwnership() && hasValidUserId(userId);
+      allow delete: if isOwner(userId);
     }
   }
 }

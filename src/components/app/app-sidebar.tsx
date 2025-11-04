@@ -22,8 +22,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
 interface AppSidebarProps {
     user: User | null;
-    planHistory: StoredPlan[];
-    itineraryHistory: StoredItinerary[];
+    planHistory?: StoredPlan[];
+    itineraryHistory?: StoredItinerary[];
     onSelectPlan: (plan: StoredPlan) => void;
     onSelectItinerary: (itinerary: StoredItinerary) => void;
     onDeletePlan: (e: React.MouseEvent, planId: string) => void;
@@ -47,8 +47,8 @@ interface AppSidebarProps {
 
 export function AppSidebar({
     user,
-    planHistory,
-    itineraryHistory,
+    planHistory = [],
+    itineraryHistory = [],
     onSelectPlan,
     onSelectItinerary,
     onDeletePlan,

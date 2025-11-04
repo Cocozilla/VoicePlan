@@ -1,5 +1,5 @@
 /*!***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
-  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[2].use[1]!./node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[13].oneOf[2].use[2]!./node_modules/next/font/google/target.css?{"path":"src/app/layout.tsx","import":"Inter","arguments":[{"subsets":["latin"],"variable":"--font-inter","display":"swap"}],"variableName":"inter"} ***!
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[2].use[1]!./node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[14].oneOf[2].use[2]!./node_modules/next/font/google/target.css?{"path":"src/app/layout.tsx","import":"Inter","arguments":[{"subsets":["latin"],"variable":"--font-inter","display":"swap"}],"variableName":"inter"} ***!
   \***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
 /* cyrillic-ext */
 @font-face {
@@ -63,13 +63,13 @@
   font-display: swap;
   src: url(/_next/static/media/e4af272ccee01ff0-s.p.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}@font-face {font-family: 'Inter Fallback';src: local("Arial");ascent-override: 90.49%;descent-override: 22.56%;line-gap-override: 0.00%;size-adjust: 107.06%
+}@font-face {font-family: 'Inter Fallback';src: local("Arial");ascent-override: 90.44%;descent-override: 22.52%;line-gap-override: 0.00%;size-adjust: 107.12%
 }.__className_f367f3 {font-family: 'Inter', 'Inter Fallback';font-style: normal
 }.__variable_f367f3 {--font-inter: 'Inter', 'Inter Fallback'
 }
 
 /*!*****************************************************************************************************************************************************************************************************************************************************************!*\
-  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[13].oneOf[10].use[3]!./src/app/globals.css ***!
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./src/app/globals.css ***!
   \*****************************************************************************************************************************************************************************************************************************************************************/
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
@@ -1721,6 +1721,10 @@ video {
   padding-top: 0.375rem;
   padding-bottom: 0.375rem;
 }
+.py-12 {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
 .py-2 {
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
@@ -1774,6 +1778,9 @@ video {
 }
 .pt-4 {
   padding-top: 1rem;
+}
+.pt-8 {
+  padding-top: 2rem;
 }
 .text-left {
   text-align: left;
@@ -1906,6 +1913,9 @@ video {
 }
 .text-transparent {
   color: transparent;
+}
+.underline {
+  text-decoration-line: underline;
 }
 .line-through {
   text-decoration-line: line-through;
@@ -2245,6 +2255,10 @@ video {
 
 .hover\:text-foreground:hover {
   color: hsl(var(--foreground));
+}
+
+.hover\:text-primary:hover {
+  color: hsl(var(--primary));
 }
 
 .hover\:text-primary-foreground:hover {
