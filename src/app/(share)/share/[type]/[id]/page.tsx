@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { StoredPlan, StoredItinerary } from '@/app/types';
@@ -11,15 +12,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-type SharePageParams = {
-  params: {
-    type: 'plan' | 'itinerary';
-    id: string;
-  };
-};
-
-export default function SharePage({ params }: SharePageParams) {
-  const { type, id } = params;
+export default function SharePage() {
+  const params = useParams();
+  const type = params.type as 'plan' | 'itinerary';
+  const id = params.id as string;
 
   const firestore = useFirestore();
   const [content, setContent] = useState<StoredPlan | StoredItinerary | null>(null);
