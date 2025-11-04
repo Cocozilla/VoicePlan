@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { StoredPlan, StoredItinerary } from '@/app/types';
@@ -19,7 +19,7 @@ type SharePageParams = {
 };
 
 export default function SharePage({ params }: SharePageParams) {
-  const { type, id } = use(params);
+  const { type, id } = params;
 
   const firestore = useFirestore();
   const [content, setContent] = useState<StoredPlan | StoredItinerary | null>(null);
